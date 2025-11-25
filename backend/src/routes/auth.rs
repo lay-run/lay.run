@@ -128,12 +128,36 @@ pub async fn login(
     let user = state
         .auth_service
         .find_user_by_email(&payload.email)
-        .await?;
+        .await;
 
-    // Verify password
-    state
-        .auth_service
-        .verify_password(&payload.password, &user.password_hash)?;
+    let user = match user {
+        Ok(user) => {
+            // Verify password
+            if state
+                .auth_service
+                .verify_password(&payload.password, &user.password_hash)
+                .is_err()
+            {
+                // Return same message as if user doesn't exist to prevent enumeration
+                return Ok((
+                    StatusCode::OK,
+                    Json(CodeSentResponse {
+                        message: format!("verification code sent to {}", payload.email),
+                    }),
+                ));
+            }
+            user
+        }
+        Err(_) => {
+            // Return success message even if user doesn't exist to prevent enumeration
+            return Ok((
+                StatusCode::OK,
+                Json(CodeSentResponse {
+                    message: format!("verification code sent to {}", payload.email),
+                }),
+            ));
+        }
+    };
 
     // Generate login verification code
     let code = state
@@ -192,7 +216,17 @@ pub async fn resend_code(
     let user = state
         .auth_service
         .find_user_by_email(&payload.email)
-        .await?;
+        .await;
+
+    // Return same message regardless of whether user exists to prevent enumeration
+    let user = match user {
+        Ok(user) => user,
+        Err(_) => {
+            return Ok(Json(CodeSentResponse {
+                message: format!("verification code sent to {}", payload.email),
+            }));
+        }
+    };
 
     // Generate new verification code
     let code = state

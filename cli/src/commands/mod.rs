@@ -2,8 +2,7 @@ mod auth;
 
 use crate::cli::{Cli, Commands, RegisterAction};
 use crate::client::ApiClient;
-use crate::config::load_token;
-use crate::error::{CliError, Result};
+use crate::error::Result;
 use crate::greeting;
 
 pub async fn execute(cli: Cli) -> Result<()> {
@@ -22,16 +21,6 @@ pub async fn execute(cli: Cli) -> Result<()> {
 
     // Create shared API client
     let client = ApiClient::new(cli.api_url())?;
-
-    // Check if user is already authenticated for register/login commands
-    let is_authenticated = load_token().is_ok();
-
-    match command {
-        Commands::Register { .. } | Commands::Login { .. } if is_authenticated => {
-            return Err(CliError::ConfigError("already logged in, logout first".to_string()));
-        }
-        _ => {}
-    }
 
     // Execute the appropriate command
     match command {
