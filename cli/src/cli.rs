@@ -1,18 +1,27 @@
 use clap::{builder::Styles, Parser, Subcommand};
 
-/// simple authentication, no fuss
+/// lay.run - your infra
 #[derive(Parser)]
 #[command(name = "lay")]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
 #[command(styles = get_styles())]
+#[command(help_template = "\
+{about-with-newline}
+usage: lay [options] <command>
+
+commands:
+{subcommands}
+options:
+{options}{after-help}
+")]
 pub struct Cli {
     /// show more details
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
     /// output format (text, json, json-pretty)
-    #[arg(short = 'o', long, value_enum, default_value_t = OutputFormat::Text)]
+    #[arg(short = 'o', long, value_enum, default_value_t = OutputFormat::Text, value_name = "format")]
     pub output: OutputFormat,
 
     #[command(subcommand)]
@@ -38,12 +47,24 @@ pub enum OutputFormat {
 #[derive(Subcommand, Clone)]
 pub enum Commands {
     /// create a new account
+    #[command(help_template = "\
+{about-with-newline}
+usage: lay register [options] <email> [command]
+
+commands:
+{subcommands}
+arguments:
+{positionals}
+options:
+{options}{after-help}
+")]
     Register {
         /// your email
+        #[arg(value_name = "email")]
         email: String,
 
         /// your password (we'll ask if you skip this)
-        #[arg(short, long)]
+        #[arg(short, long, value_name = "password")]
         password: Option<String>,
 
         #[command(subcommand)]
@@ -51,12 +72,22 @@ pub enum Commands {
     },
 
     /// sign in to your account
+    #[command(help_template = "\
+{about-with-newline}
+usage: lay login [options] <email>
+
+arguments:
+{positionals}
+options:
+{options}{after-help}
+")]
     Login {
         /// your email
+        #[arg(value_name = "email")]
         email: String,
 
         /// your password (we'll ask if you skip this)
-        #[arg(short, long)]
+        #[arg(short, long, value_name = "password")]
         password: Option<String>,
     },
 
@@ -69,6 +100,7 @@ pub enum RegisterAction {
     /// verify your email with a code
     Verify {
         /// the code we sent you
+        #[arg(value_name = "code")]
         code: String,
     },
 
