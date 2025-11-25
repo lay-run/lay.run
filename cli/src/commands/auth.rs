@@ -11,6 +11,11 @@ pub async fn register(
     password: Option<String>,
     output: OutputFormat,
 ) -> Result<()> {
+    // Validate email format early
+    if !is_valid_email(&email) {
+        return Err(CliError::ConfigError("invalid email format".to_string()));
+    }
+
     let password = match password {
         Some(p) => p,
         None => {
@@ -50,6 +55,11 @@ pub async fn login(
     password: Option<String>,
     output: OutputFormat,
 ) -> Result<()> {
+    // Validate email format early
+    if !is_valid_email(&email) {
+        return Err(CliError::ConfigError("invalid email format".to_string()));
+    }
+
     let password = match password {
         Some(p) => p,
         None => rpassword::prompt_password(&format!("{}", "password: ".magenta()))?
@@ -150,5 +160,16 @@ pub async fn logout(output: OutputFormat) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn is_valid_email(email: &str) -> bool {
+    // Simple email validation: must contain @ and a dot after @
+    let parts: Vec<&str> = email.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+
+    let domain = parts[1];
+    domain.contains('.') && !email.starts_with('@') && !email.ends_with('@')
 }
 
