@@ -13,11 +13,11 @@ pub async fn register(
     let password = match password {
         Some(p) => p,
         None => {
-            let pass = rpassword::prompt_password("Password: ")?;
-            let confirm = rpassword::prompt_password("Confirm password: ")?;
+            let pass = rpassword::prompt_password("password: ")?;
+            let confirm = rpassword::prompt_password("confirm: ")?;
 
             if pass != confirm {
-                return Err(CliError::ConfigError("Passwords do not match".to_string()));
+                return Err(CliError::ConfigError("passwords do not match".to_string()));
             }
 
             pass
@@ -37,7 +37,7 @@ pub async fn register(
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password("Verification code: ")?;
+    let code = rpassword::prompt_password("enter code: ")?;
 
     // Verify email
     verify(client, email, code, output).await
@@ -51,7 +51,7 @@ pub async fn login(
 ) -> Result<()> {
     let password = match password {
         Some(p) => p,
-        None => rpassword::prompt_password("Password: ")?
+        None => rpassword::prompt_password("password: ")?
     };
 
     let result: CodeSentResponse = client
@@ -67,7 +67,7 @@ pub async fn login(
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password("Verification code: ")?;
+    let code = rpassword::prompt_password("enter code: ")?;
 
     // Verify login
     verify_login(client, email, code, output).await
@@ -89,7 +89,7 @@ pub async fn verify(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("Email verified successfully");
+            println!("email verified");
         }
     }
 
@@ -128,7 +128,7 @@ async fn verify_login(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("Login successful");
+            println!("logged in");
         }
     }
 
@@ -139,12 +139,12 @@ pub async fn logout(output: OutputFormat) -> Result<()> {
     clear_token()?;
 
     match output {
-        OutputFormat::Json => println!("{{\"message\": \"Logged out successfully\"}}"),
+        OutputFormat::Json => println!("{{\"message\": \"logged out\"}}"),
         OutputFormat::JsonPretty => {
-            println!("{}", serde_json::json!({"message": "Logged out successfully"}))
+            println!("{}", serde_json::json!({"message": "logged out"}))
         }
         OutputFormat::Text => {
-            println!("Logged out successfully");
+            println!("logged out");
         }
     }
 

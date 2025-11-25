@@ -27,46 +27,48 @@ impl CliError {
                 match status.as_u16() {
                     400 => {
                         if message.contains("Email already exists") {
-                            eprintln!("{}", "Email already registered".red());
+                            eprintln!("lay: {}", "email already registered".red());
                         } else if message.contains("Invalid credentials") {
-                            eprintln!("{}", "Invalid email or password".red());
+                            eprintln!("lay: {}", "invalid email or password".red());
                         } else if message.contains("Invalid verification code") {
-                            eprintln!("{}", "Invalid or expired verification code".red());
+                            eprintln!("lay: {}", "invalid or expired verification code".red());
+                        } else if message.contains("Passwords do not match") {
+                            eprintln!("lay: {}", "passwords do not match".red());
                         } else {
-                            eprintln!("{}", message.red());
+                            eprintln!("lay: {}", message.to_lowercase().red());
                         }
                     }
-                    401 => eprintln!("{}", "Authentication failed".red()),
-                    404 => eprintln!("{}", "Resource not found".red()),
+                    401 => eprintln!("lay: {}", "authentication failed".red()),
+                    404 => eprintln!("lay: {}", "not found".red()),
                     429 => {
                         if message.contains("Too many requests") {
-                            eprintln!("{}", "Rate limit exceeded. Please try again later.".red());
+                            eprintln!("lay: {}", "too many attempts, try again later".red());
                         } else {
-                            eprintln!("{}", message.red());
+                            eprintln!("lay: {}", message.to_lowercase().red());
                         }
                     }
-                    500..=599 => eprintln!("{}", "Server error. Please try again later.".red()),
-                    _ => eprintln!("{}", format!("Error: {}", message).red()),
+                    500..=599 => eprintln!("lay: {}", "server error, try again later".red()),
+                    _ => eprintln!("lay: {}", message.to_lowercase().red()),
                 }
             }
-            CliError::ConfigError(msg) => eprintln!("{}", msg.red()),
+            CliError::ConfigError(msg) => eprintln!("lay: {}", msg.to_lowercase().red()),
             CliError::IoError(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
-                    eprintln!("{}", "Not logged in. Please login or register first.".red());
+                    eprintln!("lay: {}", "not logged in".red());
                 } else {
-                    eprintln!("{}", format!("IO error: {}", e).red());
+                    eprintln!("lay: {}", format!("{}", e).to_lowercase().red());
                 }
             }
             CliError::HttpError(e) => {
                 if e.is_timeout() {
-                    eprintln!("{}", "Request timed out. Please check your connection.".red());
+                    eprintln!("lay: {}", "request timed out".red());
                 } else if e.is_connect() {
-                    eprintln!("{}", "Cannot connect to server. Is it running?".red());
+                    eprintln!("lay: {}", "cannot connect to server".red());
                 } else {
-                    eprintln!("{}", format!("Network error: {}", e).red());
+                    eprintln!("lay: {}", format!("{}", e).to_lowercase().red());
                 }
             }
-            CliError::JsonError(e) => eprintln!("{}", format!("Invalid response format: {}", e).red()),
+            CliError::JsonError(_) => eprintln!("lay: {}", "invalid response from server".red()),
         }
     }
 }

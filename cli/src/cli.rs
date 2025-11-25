@@ -1,17 +1,17 @@
 use clap::{builder::Styles, Parser, Subcommand};
 
-/// Lay CLI - Command-line interface for the Lay platform
+/// simple authentication, no fuss
 #[derive(Parser)]
 #[command(name = "lay")]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
 #[command(styles = get_styles())]
 pub struct Cli {
-    /// Enable verbose output
+    /// show more details
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-    /// Output format
+    /// output format (text, json, json-pretty)
     #[arg(short = 'o', long, value_enum, default_value_t = OutputFormat::Text)]
     pub output: OutputFormat,
 
@@ -27,22 +27,22 @@ impl Cli {
 
 #[derive(Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum OutputFormat {
-    /// Plain text output
+    /// plain text
     Text,
-    /// JSON output
+    /// json output
     Json,
-    /// Pretty-printed JSON
+    /// pretty json
     JsonPretty,
 }
 
 #[derive(Subcommand, Clone)]
 pub enum Commands {
-    /// Register and verify a new account
+    /// create a new account
     Register {
-        /// Email address
+        /// your email
         email: String,
 
-        /// Password (will prompt if not provided)
+        /// your password (we'll ask if you skip this)
         #[arg(short, long)]
         password: Option<String>,
 
@@ -50,29 +50,29 @@ pub enum Commands {
         action: Option<RegisterAction>,
     },
 
-    /// Login to your account
+    /// sign in to your account
     Login {
-        /// Email address
+        /// your email
         email: String,
 
-        /// Password (will prompt if not provided)
+        /// your password (we'll ask if you skip this)
         #[arg(short, long)]
         password: Option<String>,
     },
 
-    /// Logout (clear stored credentials)
+    /// sign out
     Logout,
 }
 
 #[derive(Subcommand, Clone)]
 pub enum RegisterAction {
-    /// Verify email with code
+    /// verify your email with a code
     Verify {
-        /// Verification code
+        /// the code we sent you
         code: String,
     },
 
-    /// Resend verification code
+    /// send the code again
     Resend,
 }
 

@@ -83,8 +83,7 @@ pub async fn register(
     Ok((
         StatusCode::CREATED,
         Json(CodeSentResponse {
-            message: "Registration successful. Please check your email for verification code."
-                .to_string(),
+            message: format!("verification code sent to {}", user.email),
         }),
     ))
 }
@@ -151,7 +150,7 @@ pub async fn login(
     Ok((
         StatusCode::OK,
         Json(CodeSentResponse {
-            message: "Login code sent to your email.".to_string(),
+            message: format!("verification code sent to {}", user.email),
         }),
     ))
 }
@@ -208,6 +207,6 @@ pub async fn resend_code(
         .await?;
 
     Ok(Json(CodeSentResponse {
-        message: "Verification code sent to your email.".to_string(),
+        message: format!("verification code sent to {}", user.email),
     }))
 }
