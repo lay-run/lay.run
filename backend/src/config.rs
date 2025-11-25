@@ -21,14 +21,13 @@ impl Config {
             .unwrap_or_else(|_| "3000".to_string())
             .parse::<u16>()?;
 
-        let jwt_secret = env::var("JWT_SECRET")
-            .expect("JWT_SECRET must be set in environment");
+        let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set in environment");
 
-        let ses_from_email = env::var("SES_FROM_EMAIL")
-            .expect("SES_FROM_EMAIL must be set in environment");
+        let ses_from_email =
+            env::var("SES_FROM_EMAIL").expect("SES_FROM_EMAIL must be set in environment");
 
-        let ses_reply_to_email = env::var("SES_REPLY_TO_EMAIL")
-            .expect("SES_REPLY_TO_EMAIL must be set in environment");
+        let ses_reply_to_email =
+            env::var("SES_REPLY_TO_EMAIL").expect("SES_REPLY_TO_EMAIL must be set in environment");
 
         Ok(Self {
             database_url,

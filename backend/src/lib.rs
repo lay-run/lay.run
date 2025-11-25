@@ -6,7 +6,7 @@ pub mod models;
 pub mod routes;
 pub mod services;
 
-use axum::{middleware::from_fn_with_state, Router};
+use axum::{Router, middleware::from_fn_with_state};
 use services::{auth::AuthService, email::EmailService, rate_limit::RateLimitService};
 use sqlx::PgPool;
 use tower_http::{
@@ -26,7 +26,10 @@ pub fn create_app(
         .on_response(DefaultOnResponse::new().level(Level::INFO));
 
     Router::new()
-        .nest("/api", routes::create_routes(pool, auth_service, email_service))
+        .nest(
+            "/api",
+            routes::create_routes(pool, auth_service, email_service),
+        )
         .layer(CorsLayer::permissive())
         .layer(trace_layer)
         .layer(from_fn_with_state(

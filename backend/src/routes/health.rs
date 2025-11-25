@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use serde_json::json;
 use sqlx::PgPool;
 
@@ -11,10 +11,10 @@ pub async fn health_check() -> Json<serde_json::Value> {
     }))
 }
 
-pub async fn db_health_check(State(pool): State<PgPool>) -> Result<(StatusCode, Json<serde_json::Value>)> {
-    sqlx::query("SELECT 1")
-        .fetch_one(&pool)
-        .await?;
+pub async fn db_health_check(
+    State(pool): State<PgPool>,
+) -> Result<(StatusCode, Json<serde_json::Value>)> {
+    sqlx::query("SELECT 1").fetch_one(&pool).await?;
 
     Ok((
         StatusCode::OK,

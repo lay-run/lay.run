@@ -1,7 +1,6 @@
 use backend::{
     config::Config,
-    create_app,
-    db,
+    create_app, db,
     services::{
         auth::AuthService,
         email::EmailService,

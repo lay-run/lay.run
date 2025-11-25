@@ -29,10 +29,10 @@ pub fn load_token() -> Result<String> {
 pub fn clear_token() -> Result<()> {
     let config_path = get_config_path()?;
 
-    if let Err(e) = std::fs::remove_file(&config_path) {
-        if e.kind() != std::io::ErrorKind::NotFound {
-            return Err(CliError::IoError(e));
-        }
+    if let Err(e) = std::fs::remove_file(&config_path)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        return Err(CliError::IoError(e));
     }
 
     Ok(())

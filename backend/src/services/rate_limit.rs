@@ -1,7 +1,7 @@
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use std::net::IpAddr;
 use std::time::Duration;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone)]
 pub enum RateLimitIdentifier {
@@ -27,8 +27,8 @@ pub struct RateLimitConfig {
 impl Default for RateLimitConfig {
     fn default() -> Self {
         Self {
-            requests_per_window: 100,  // 100 requests
-            window_duration: Duration::from_secs(60),  // per minute
+            requests_per_window: 100,                 // 100 requests
+            window_duration: Duration::from_secs(60), // per minute
         }
     }
 }
@@ -37,16 +37,16 @@ impl RateLimitConfig {
     /// Creates a configuration for secure rate limiting (more restrictive)
     pub fn secure() -> Self {
         Self {
-            requests_per_window: 20,  // 20 requests
-            window_duration: Duration::from_secs(60),  // per minute
+            requests_per_window: 20,                  // 20 requests
+            window_duration: Duration::from_secs(60), // per minute
         }
     }
 
     /// Creates a configuration for strict rate limiting (very restrictive)
     pub fn strict() -> Self {
         Self {
-            requests_per_window: 10,  // 10 requests
-            window_duration: Duration::from_secs(60),  // per minute
+            requests_per_window: 10,                  // 10 requests
+            window_duration: Duration::from_secs(60), // per minute
         }
     }
 
@@ -147,17 +147,19 @@ impl RateLimitService {
         let timestamp = now.timestamp();
         let window_start_timestamp = (timestamp / window_secs) * window_secs;
 
-        DateTime::from_timestamp(window_start_timestamp, 0)
-            .unwrap_or(now)
+        DateTime::from_timestamp(window_start_timestamp, 0).unwrap_or(now)
     }
 
     /// Calculate how long until the next window
     fn calculate_retry_after(&self, window_start: DateTime<Utc>) -> Duration {
-        let window_end = window_start + chrono::Duration::from_std(self.config.window_duration).unwrap();
+        let window_end =
+            window_start + chrono::Duration::from_std(self.config.window_duration).unwrap();
         let now = Utc::now();
 
         if window_end > now {
-            (window_end - now).to_std().unwrap_or(Duration::from_secs(1))
+            (window_end - now)
+                .to_std()
+                .unwrap_or(Duration::from_secs(1))
         } else {
             Duration::from_secs(1)
         }
@@ -165,7 +167,8 @@ impl RateLimitService {
 
     /// Clean up old rate limit records (should be called periodically)
     pub async fn cleanup_old_records(&self) -> Result<u64, sqlx::Error> {
-        let cutoff = Utc::now() - chrono::Duration::from_std(self.config.window_duration * 2).unwrap();
+        let cutoff =
+            Utc::now() - chrono::Duration::from_std(self.config.window_duration * 2).unwrap();
 
         let result = sqlx::query(
             r#"

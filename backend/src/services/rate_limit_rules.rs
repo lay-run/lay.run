@@ -67,11 +67,9 @@ impl RateLimitRules {
     ) -> Result<RateLimitIdentifier, &'static str> {
         match identifier_type {
             IdentifierType::Ip => Ok(RateLimitIdentifier::Ip(ip)),
-            IdentifierType::Email => {
-                email
-                    .map(RateLimitIdentifier::Email)
-                    .ok_or("Email required for rate limiting but not provided")
-            }
+            IdentifierType::Email => email
+                .map(RateLimitIdentifier::Email)
+                .ok_or("Email required for rate limiting but not provided"),
         }
     }
 }

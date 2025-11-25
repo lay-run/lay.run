@@ -1,8 +1,4 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    Json,
-};
+use axum::{Json, extract::State, http::StatusCode};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
@@ -103,7 +99,11 @@ pub async fn verify(
     // Verify code
     state
         .auth_service
-        .verify_code(user.id, &payload.code, VerificationCodeType::EmailVerification)
+        .verify_code(
+            user.id,
+            &payload.code,
+            VerificationCodeType::EmailVerification,
+        )
         .await?;
 
     // Fetch updated user (now verified)

@@ -1,5 +1,5 @@
-use aws_sdk_ses::types::{Body, Content, Destination, Message};
 use aws_sdk_ses::Client as SesClient;
+use aws_sdk_ses::types::{Body, Content, Destination, Message};
 
 use crate::error::{AppError, Result};
 

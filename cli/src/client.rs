@@ -1,6 +1,6 @@
 use crate::error::{CliError, Result};
 use reqwest::Response;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::time::Duration;
 
 pub struct ApiClient {
@@ -53,10 +53,7 @@ impl ApiClient {
                 error_text
             };
 
-            return Err(CliError::ApiError {
-                status,
-                message,
-            });
+            return Err(CliError::ApiError { status, message });
         }
 
         response.json().await.map_err(Into::into)

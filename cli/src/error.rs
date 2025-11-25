@@ -2,6 +2,7 @@ use crate::display::Display;
 use reqwest::StatusCode;
 use thiserror::Error;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Error, Debug)]
 pub enum CliError {
     #[error("API request failed: {status} - {message}")]
@@ -26,13 +27,21 @@ impl CliError {
             CliError::ApiError { status, message } => {
                 let msg = match status.as_u16() {
                     400 => {
-                        if message.contains("email already exists") || message.contains("Email already exists") {
+                        if message.contains("email already exists")
+                            || message.contains("Email already exists")
+                        {
                             "email already registered"
-                        } else if message.contains("invalid credentials") || message.contains("Invalid credentials") {
+                        } else if message.contains("invalid credentials")
+                            || message.contains("Invalid credentials")
+                        {
                             "invalid email or password"
-                        } else if message.contains("invalid verification code") || message.contains("Invalid verification code") {
+                        } else if message.contains("invalid verification code")
+                            || message.contains("Invalid verification code")
+                        {
                             "invalid or expired verification code"
-                        } else if message.contains("passwords do not match") || message.contains("Passwords do not match") {
+                        } else if message.contains("passwords do not match")
+                            || message.contains("Passwords do not match")
+                        {
                             "passwords do not match"
                         } else if message.contains("invalid email format") {
                             "invalid email format"
@@ -73,7 +82,9 @@ impl CliError {
                 };
                 eprintln!("{}", Display::error(&msg));
             }
-            CliError::JsonError(_) => eprintln!("{}", Display::error("invalid response from server")),
+            CliError::JsonError(_) => {
+                eprintln!("{}", Display::error("invalid response from server"))
+            }
         }
     }
 }

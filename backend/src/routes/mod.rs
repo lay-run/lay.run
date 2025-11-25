@@ -1,7 +1,10 @@
 pub mod auth;
 pub mod health;
 
-use axum::{routing::{get, post}, Router};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use sqlx::PgPool;
 
 use crate::services::{auth::AuthService, email::EmailService};

@@ -1,9 +1,9 @@
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -331,7 +331,9 @@ mod tests {
         let password = "SecurePassword123";
 
         // Hash password
-        let hash = service.hash_password(password).expect("Failed to hash password");
+        let hash = service
+            .hash_password(password)
+            .expect("Failed to hash password");
 
         // Verify correct password
         assert!(service.verify_password(password, &hash).is_ok());
@@ -346,8 +348,12 @@ mod tests {
         let service = AuthService::new(pool, "test-secret".to_string());
         let password = "SecurePassword123";
 
-        let hash1 = service.hash_password(password).expect("Failed to hash password");
-        let hash2 = service.hash_password(password).expect("Failed to hash password");
+        let hash1 = service
+            .hash_password(password)
+            .expect("Failed to hash password");
+        let hash2 = service
+            .hash_password(password)
+            .expect("Failed to hash password");
 
         // Same password should generate different hashes (due to salt)
         assert_ne!(hash1, hash2);
@@ -466,4 +472,3 @@ mod tests {
         assert!(service.verify_jwt(&token).is_err());
     }
 }
-

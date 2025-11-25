@@ -1,4 +1,4 @@
-use clap::{builder::Styles, Parser, Subcommand};
+use clap::{Parser, Subcommand, builder::Styles};
 
 /// lay - infrastructure, simplified
 #[derive(Parser)]
@@ -125,18 +125,14 @@ fn get_styles() -> Styles {
                 .bold()
                 .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Magenta))),
         )
-        .usage(
-            anstyle::Style::new()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))),
-        )
+        .usage(anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))))
         .literal(
             anstyle::Style::new()
                 .bold()
                 .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))),
         )
         .placeholder(
-            anstyle::Style::new()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Blue))),
+            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Blue))),
         )
         .error(
             anstyle::Style::new()

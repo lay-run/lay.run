@@ -1,9 +1,12 @@
 use crate::cli::OutputFormat;
 use crate::client::ApiClient;
-use crate::config::{save_token, clear_token};
+use crate::config::{clear_token, save_token};
 use crate::display::Display;
 use crate::error::{CliError, Result};
-use crate::types::{AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest, VerifyRequest, VerifyLoginRequest};
+use crate::types::{
+    AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest,
+    VerifyLoginRequest, VerifyRequest,
+};
 
 pub async fn register(
     client: &ApiClient,
@@ -19,8 +22,8 @@ pub async fn register(
     let password = match password {
         Some(p) => p,
         None => {
-            let pass = rpassword::prompt_password(&Display::prompt("password: "))?;
-            let confirm = rpassword::prompt_password(&Display::prompt("confirm: "))?;
+            let pass = rpassword::prompt_password(Display::prompt("password: "))?;
+            let confirm = rpassword::prompt_password(Display::prompt("confirm: "))?;
 
             if pass != confirm {
                 return Err(CliError::ConfigError("passwords do not match".to_string()));
@@ -31,7 +34,13 @@ pub async fn register(
     };
 
     let result: CodeSentResponse = client
-        .post("/api/auth/register", &RegisterRequest { email: email.clone(), password })
+        .post(
+            "/api/auth/register",
+            &RegisterRequest {
+                email: email.clone(),
+                password,
+            },
+        )
         .await?;
 
     match output {
@@ -43,7 +52,7 @@ pub async fn register(
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password(&Display::prompt("enter code: "))?;
+    let code = rpassword::prompt_password(Display::prompt("enter code: "))?;
 
     // Verify email
     verify(client, email, code, output).await
@@ -62,11 +71,17 @@ pub async fn login(
 
     let password = match password {
         Some(p) => p,
-        None => rpassword::prompt_password(&Display::prompt("password: "))?
+        None => rpassword::prompt_password(Display::prompt("password: "))?,
     };
 
     let result: CodeSentResponse = client
-        .post("/api/auth/login", &LoginRequest { email: email.clone(), password })
+        .post(
+            "/api/auth/login",
+            &LoginRequest {
+                email: email.clone(),
+                password,
+            },
+        )
         .await?;
 
     match output {
@@ -78,7 +93,7 @@ pub async fn login(
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password(&Display::prompt("enter code: "))?;
+    let code = rpassword::prompt_password(Display::prompt("enter code: "))?;
 
     // Verify login
     verify_login(client, email, code, output).await
@@ -130,7 +145,10 @@ async fn verify_login(
     output: OutputFormat,
 ) -> Result<()> {
     let result: AuthResponse = client
-        .post("/api/auth/login/verify", &VerifyLoginRequest { email, code })
+        .post(
+            "/api/auth/login/verify",
+            &VerifyLoginRequest { email, code },
+        )
         .await?;
 
     save_token(&result.token)?;
@@ -172,4 +190,3 @@ fn is_valid_email(email: &str) -> bool {
     let domain = parts[1];
     domain.contains('.') && !email.starts_with('@') && !email.ends_with('@')
 }
-

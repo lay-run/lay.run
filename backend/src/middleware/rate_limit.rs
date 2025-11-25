@@ -7,10 +7,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 
-use crate::services::{
-    rate_limit::RateLimitService,
-    rate_limit_rules::RateLimitRules,
-};
+use crate::services::{rate_limit::RateLimitService, rate_limit_rules::RateLimitRules};
 
 /// Rate limiting middleware with endpoint-specific rules
 pub async fn rate_limit_middleware(
@@ -38,7 +35,8 @@ pub async fn rate_limit_middleware(
         .await
         .map_err(|e| RateLimitError::BodyReadError(e.to_string()))?;
 
-    let email = if rule.identifier_type == crate::services::rate_limit_rules::IdentifierType::Email {
+    let email = if rule.identifier_type == crate::services::rate_limit_rules::IdentifierType::Email
+    {
         extract_email_from_body(&bytes).ok()
     } else {
         None
@@ -59,10 +57,7 @@ pub async fn rate_limit_middleware(
 
     if !result.allowed {
         // Rate limit exceeded
-        let retry_after_secs = result
-            .retry_after
-            .map(|d| d.as_secs())
-            .unwrap_or(60);
+        let retry_after_secs = result.retry_after.map(|d| d.as_secs()).unwrap_or(60);
 
         return Err(RateLimitError::RateLimitExceeded {
             retry_after_secs,
@@ -111,7 +106,8 @@ fn add_rate_limit_headers(
 
     // X-RateLimit-Reset: Unix timestamp when the rate limit resets
     if let Some(retry_after) = result.retry_after {
-        let reset_timestamp = (chrono::Utc::now() + chrono::Duration::from_std(retry_after).unwrap()).timestamp();
+        let reset_timestamp =
+            (chrono::Utc::now() + chrono::Duration::from_std(retry_after).unwrap()).timestamp();
         if let Ok(value) = reset_timestamp.to_string().try_into() {
             headers.insert("X-RateLimit-Reset", value);
         }
@@ -156,11 +152,7 @@ impl IntoResponse for RateLimitError {
             }
             RateLimitError::DatabaseError(msg) => {
                 tracing::error!("Rate limit database error: {}", msg);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Internal server error",
-                )
-                    .into_response()
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
             }
             RateLimitError::BodyReadError(msg) => {
                 tracing::error!("Failed to read request body: {}", msg);
