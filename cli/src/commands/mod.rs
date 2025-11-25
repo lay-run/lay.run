@@ -15,7 +15,19 @@ pub async fn execute(cli: Cli) -> Result<()> {
 
     // Execute the appropriate command
     match &cli.command {
-        Commands::Auth(auth_cmd) => auth::execute(auth_cmd.clone(), &cli).await,
+        Commands::Register { email, password } => {
+            auth::register(&cli.api_url, email.clone(), password.clone(), cli.output).await
+        }
+        Commands::Login { email, password } => {
+            auth::login(&cli.api_url, email.clone(), password.clone(), cli.output).await
+        }
+        Commands::Verify { email, code } => {
+            auth::verify(&cli.api_url, email.clone(), code.clone(), cli.output).await
+        }
+        Commands::Resend { email } => {
+            auth::resend_code(&cli.api_url, email.clone(), cli.output).await
+        }
+        Commands::Logout => auth::logout(cli.output).await,
         Commands::User(user_cmd) => user::execute(user_cmd.clone(), &cli).await,
         Commands::Health(health_cmd) => health::execute(health_cmd.clone(), &cli).await,
     }

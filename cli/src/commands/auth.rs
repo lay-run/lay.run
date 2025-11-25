@@ -1,4 +1,4 @@
-use crate::cli::{AuthCommands, AuthSubcommand, Cli, OutputFormat};
+use crate::cli::OutputFormat;
 use crate::error::{CliError, Result};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
@@ -44,25 +44,7 @@ struct CodeSentResponse {
     message: String,
 }
 
-pub async fn execute(cmd: AuthCommands, cli: &Cli) -> Result<()> {
-    match cmd.command {
-        AuthSubcommand::Register { email, password } => {
-            register(&cli.api_url, email, password, cli.output).await
-        }
-        AuthSubcommand::Login { email, password } => {
-            login(&cli.api_url, email, password, cli.output).await
-        }
-        AuthSubcommand::Verify { email, code } => {
-            verify(&cli.api_url, email, code, cli.output).await
-        }
-        AuthSubcommand::ResendCode { email } => {
-            resend_code(&cli.api_url, email, cli.output).await
-        }
-        AuthSubcommand::Logout => logout(cli.output).await,
-    }
-}
-
-async fn register(
+pub async fn register(
     api_url: &str,
     email: String,
     password: Option<String>,
@@ -101,7 +83,7 @@ async fn register(
     Ok(())
 }
 
-async fn login(
+pub async fn login(
     api_url: &str,
     email: String,
     password: Option<String>,
@@ -141,7 +123,7 @@ async fn login(
     Ok(())
 }
 
-async fn verify(
+pub async fn verify(
     api_url: &str,
     email: String,
     code: String,
@@ -178,7 +160,7 @@ async fn verify(
     Ok(())
 }
 
-async fn resend_code(api_url: &str, email: String, output: OutputFormat) -> Result<()> {
+pub async fn resend_code(api_url: &str, email: String, output: OutputFormat) -> Result<()> {
     let client = reqwest::Client::new();
     let response = client
         .post(format!("{}/api/auth/resend-code", api_url))
@@ -204,7 +186,7 @@ async fn resend_code(api_url: &str, email: String, output: OutputFormat) -> Resu
     Ok(())
 }
 
-async fn logout(output: OutputFormat) -> Result<()> {
+pub async fn logout(output: OutputFormat) -> Result<()> {
     // Remove saved token
     if let Err(e) = std::fs::remove_file(get_config_path()?) {
         if e.kind() != std::io::ErrorKind::NotFound {

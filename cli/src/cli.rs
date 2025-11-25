@@ -40,28 +40,9 @@ pub enum OutputFormat {
 
 #[derive(Subcommand, Clone)]
 pub enum Commands {
-    /// Authentication commands
-    Auth(AuthCommands),
-
-    /// User management commands
-    User(UserCommands),
-
-    /// Health check commands
-    Health(HealthCommands),
-}
-
-#[derive(clap::Args, Clone)]
-pub struct AuthCommands {
-    #[command(subcommand)]
-    pub command: AuthSubcommand,
-}
-
-#[derive(Subcommand, Clone)]
-pub enum AuthSubcommand {
     /// Register a new account
     Register {
         /// Email address
-        #[arg(short, long)]
         email: String,
 
         /// Password (will prompt if not provided)
@@ -72,7 +53,6 @@ pub enum AuthSubcommand {
     /// Login to your account
     Login {
         /// Email address
-        #[arg(short, long)]
         email: String,
 
         /// Password (will prompt if not provided)
@@ -83,23 +63,26 @@ pub enum AuthSubcommand {
     /// Verify email with code
     Verify {
         /// Email address
-        #[arg(short, long)]
         email: String,
 
         /// Verification code
-        #[arg(short, long)]
         code: String,
     },
 
     /// Resend verification code
-    ResendCode {
+    Resend {
         /// Email address
-        #[arg(short, long)]
         email: String,
     },
 
     /// Logout (clear stored credentials)
     Logout,
+
+    /// User management commands
+    User(UserCommands),
+
+    /// Health check commands
+    Health(HealthCommands),
 }
 
 #[derive(clap::Args, Clone)]
