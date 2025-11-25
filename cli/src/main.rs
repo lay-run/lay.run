@@ -15,7 +15,7 @@ async fn main() {
 
     // Execute the command and handle errors
     if let Err(e) = commands::execute(cli).await {
-        eprintln!("Error: {}", e);
+        e.display();
         std::process::exit(1);
     }
 }
