@@ -4,6 +4,7 @@ mod commands;
 mod config;
 mod error;
 mod types;
+mod ui;
 
 use clap::Parser;
 use cli::Cli;

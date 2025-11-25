@@ -1,4 +1,4 @@
-use colored::Colorize;
+use crate::ui::Ui;
 use reqwest::StatusCode;
 use thiserror::Error;
 
@@ -22,57 +22,58 @@ pub enum CliError {
 
 impl CliError {
     pub fn display(&self) {
-        let error_prefix = format!("{}", "✗".red().bold());
-
         match self {
             CliError::ApiError { status, message } => {
-                match status.as_u16() {
+                let msg = match status.as_u16() {
                     400 => {
                         if message.contains("email already exists") || message.contains("Email already exists") {
-                            eprintln!("{} {}", error_prefix, "email already registered".red());
+                            "email already registered"
                         } else if message.contains("invalid credentials") || message.contains("Invalid credentials") {
-                            eprintln!("{} {}", error_prefix, "invalid email or password".red());
+                            "invalid email or password"
                         } else if message.contains("invalid verification code") || message.contains("Invalid verification code") {
-                            eprintln!("{} {}", error_prefix, "invalid or expired verification code".red());
+                            "invalid or expired verification code"
                         } else if message.contains("passwords do not match") || message.contains("Passwords do not match") {
-                            eprintln!("{} {}", error_prefix, "passwords do not match".red());
+                            "passwords do not match"
                         } else if message.contains("invalid email format") {
-                            eprintln!("{} {}", error_prefix, "invalid email format".red());
+                            "invalid email format"
                         } else {
-                            eprintln!("{} {}", error_prefix, message.to_lowercase().red());
+                            &message.to_lowercase()
                         }
                     }
-                    401 => eprintln!("{} {}", error_prefix, "authentication failed".red()),
-                    404 => eprintln!("{} {}", error_prefix, "not found".red()),
+                    401 => "authentication failed",
+                    404 => "not found",
                     429 => {
                         if message.contains("too many") || message.contains("Too many") {
-                            eprintln!("{} {}", error_prefix, "too many attempts, try again later".red());
+                            "too many attempts, try again later"
                         } else {
-                            eprintln!("{} {}", error_prefix, message.to_lowercase().red());
+                            &message.to_lowercase()
                         }
                     }
-                    500..=599 => eprintln!("{} {}", error_prefix, "server error, try again later".red()),
-                    _ => eprintln!("{} {}", error_prefix, message.to_lowercase().red()),
-                }
+                    500..=599 => "server error, try again later",
+                    _ => &message.to_lowercase(),
+                };
+                eprintln!("{}", Ui::error(msg));
             }
-            CliError::ConfigError(msg) => eprintln!("{} {}", error_prefix, msg.to_lowercase().red()),
+            CliError::ConfigError(msg) => eprintln!("{}", Ui::error(&msg.to_lowercase())),
             CliError::IoError(e) => {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    eprintln!("{} {}", error_prefix, "not logged in".red());
+                let msg = if e.kind() == std::io::ErrorKind::NotFound {
+                    "not logged in".to_string()
                 } else {
-                    eprintln!("{} {}", error_prefix, format!("{}", e).to_lowercase().red());
-                }
+                    format!("{}", e).to_lowercase()
+                };
+                eprintln!("{}", Ui::error(&msg));
             }
             CliError::HttpError(e) => {
-                if e.is_timeout() {
-                    eprintln!("{} {}", error_prefix, "request timed out".red());
+                let msg = if e.is_timeout() {
+                    "request timed out".to_string()
                 } else if e.is_connect() {
-                    eprintln!("{} {}", error_prefix, "cannot connect to server".red());
+                    "cannot connect to server".to_string()
                 } else {
-                    eprintln!("{} {}", error_prefix, format!("{}", e).to_lowercase().red());
-                }
+                    format!("{}", e).to_lowercase()
+                };
+                eprintln!("{}", Ui::error(&msg));
             }
-            CliError::JsonError(_) => eprintln!("{} {}", error_prefix, "invalid response from server".red()),
+            CliError::JsonError(_) => eprintln!("{}", Ui::error("invalid response from server")),
         }
     }
 }
