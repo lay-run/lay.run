@@ -41,8 +41,3 @@ pub struct UserResponse {
 pub struct CodeSentResponse {
     pub message: String,
 }
-
-#[derive(Deserialize, Serialize)]
-pub struct HealthResponse {
-    pub status: String,
-}

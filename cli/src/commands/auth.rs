@@ -1,9 +1,8 @@
 use crate::cli::OutputFormat;
 use crate::client::ApiClient;
 use crate::config::{save_token, clear_token};
-use crate::error::Result;
+use crate::error::{CliError, Result};
 use crate::types::{AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest, VerifyRequest};
-use colored::Colorize;
 
 pub async fn register(
     client: &ApiClient,
@@ -13,7 +12,16 @@ pub async fn register(
 ) -> Result<()> {
     let password = match password {
         Some(p) => p,
-        None => rpassword::prompt_password("Password: ")?
+        None => {
+            let pass = rpassword::prompt_password("Password: ")?;
+            let confirm = rpassword::prompt_password("Confirm password: ")?;
+
+            if pass != confirm {
+                return Err(CliError::ConfigError("Passwords do not match".to_string()));
+            }
+
+            pass
+        }
     };
 
     let result: CodeSentResponse = client
@@ -24,7 +32,7 @@ pub async fn register(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{} {}", "✓".green().bold(), result.message.green());
+            println!("{}", result.message);
         }
     }
 
@@ -54,8 +62,7 @@ pub async fn login(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{} {}", "✓".green().bold(), result.message.green());
-            println!("{}", "Please check your email for the login verification code.".yellow());
+            println!("{}", result.message);
         }
     }
 
@@ -78,9 +85,7 @@ pub async fn verify(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{} {}", "✓".green().bold(), "Email verified successfully!".green());
-            println!("User ID: {}", result.user.id);
-            println!("Email: {}", result.user.email);
+            println!("Email verified successfully");
         }
     }
 
@@ -96,7 +101,7 @@ pub async fn resend_code(client: &ApiClient, email: String, output: OutputFormat
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{} {}", "✓".green().bold(), result.message.green());
+            println!("{}", result.message);
         }
     }
 
@@ -112,7 +117,7 @@ pub async fn logout(output: OutputFormat) -> Result<()> {
             println!("{}", serde_json::json!({"message": "Logged out successfully"}))
         }
         OutputFormat::Text => {
-            println!("{} {}", "✓".green().bold(), "Logged out successfully".green());
+            println!("Logged out successfully");
         }
     }
 

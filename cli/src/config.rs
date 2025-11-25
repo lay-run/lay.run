@@ -19,6 +19,7 @@ pub fn save_token(token: &str) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn load_token() -> Result<String> {
     let config_path = get_config_path()?;
     let token = std::fs::read_to_string(&config_path)?;

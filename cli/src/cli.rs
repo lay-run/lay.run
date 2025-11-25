@@ -7,15 +7,6 @@ use clap::{builder::Styles, Parser, Subcommand};
 #[command(propagate_version = true)]
 #[command(styles = get_styles())]
 pub struct Cli {
-    /// API endpoint URL
-    #[arg(
-        short,
-        long,
-        env = "LAY_API_URL",
-        default_value = "http://localhost:3000"
-    )]
-    pub api_url: String,
-
     /// Enable verbose output
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
@@ -26,6 +17,12 @@ pub struct Cli {
 
     #[command(subcommand)]
     pub command: Commands,
+}
+
+impl Cli {
+    pub fn api_url(&self) -> String {
+        std::env::var("LAY_API_URL").unwrap_or_else(|_| "http://localhost:3000".to_string())
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -40,7 +37,7 @@ pub enum OutputFormat {
 
 #[derive(Subcommand, Clone)]
 pub enum Commands {
-    /// Register a new account
+    /// Register and verify a new account
     Register {
         /// Email address
         email: String,
@@ -48,6 +45,9 @@ pub enum Commands {
         /// Password (will prompt if not provided)
         #[arg(short, long)]
         password: Option<String>,
+
+        #[command(subcommand)]
+        action: Option<RegisterAction>,
     },
 
     /// Login to your account
@@ -60,67 +60,20 @@ pub enum Commands {
         password: Option<String>,
     },
 
+    /// Logout (clear stored credentials)
+    Logout,
+}
+
+#[derive(Subcommand, Clone)]
+pub enum RegisterAction {
     /// Verify email with code
     Verify {
-        /// Email address
-        email: String,
-
         /// Verification code
         code: String,
     },
 
     /// Resend verification code
-    Resend {
-        /// Email address
-        email: String,
-    },
-
-    /// Logout (clear stored credentials)
-    Logout,
-
-    /// User management commands
-    User(UserCommands),
-
-    /// Health check commands
-    Health(HealthCommands),
-}
-
-#[derive(clap::Args, Clone)]
-pub struct UserCommands {
-    #[command(subcommand)]
-    pub command: UserSubcommand,
-}
-
-#[derive(Subcommand, Clone)]
-pub enum UserSubcommand {
-    /// Get current user information
-    Me,
-
-    /// List all users (admin only)
-    List {
-        /// Limit number of results
-        #[arg(short, long, default_value_t = 10)]
-        limit: u32,
-
-        /// Page offset
-        #[arg(short, long, default_value_t = 0)]
-        offset: u32,
-    },
-}
-
-#[derive(clap::Args, Clone)]
-pub struct HealthCommands {
-    #[command(subcommand)]
-    pub command: HealthSubcommand,
-}
-
-#[derive(Subcommand, Clone)]
-pub enum HealthSubcommand {
-    /// Check API health
-    Check,
-
-    /// Check database health
-    Db,
+    Resend,
 }
 
 impl std::fmt::Display for OutputFormat {

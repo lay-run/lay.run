@@ -30,31 +30,6 @@ impl ApiClient {
         self.handle_response(response).await
     }
 
-    pub async fn get<R>(&self, path: &str) -> Result<R>
-    where
-        R: DeserializeOwned,
-    {
-        let url = format!("{}{}", self.base_url, path);
-        let response = self.client.get(&url).send().await?;
-
-        self.handle_response(response).await
-    }
-
-    pub async fn get_with_token<R>(&self, path: &str, token: &str) -> Result<R>
-    where
-        R: DeserializeOwned,
-    {
-        let url = format!("{}{}", self.base_url, path);
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", token))
-            .send()
-            .await?;
-
-        self.handle_response(response).await
-    }
-
     async fn handle_response<R>(&self, response: Response) -> Result<R>
     where
         R: DeserializeOwned,
