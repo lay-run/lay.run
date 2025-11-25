@@ -13,6 +13,14 @@ processes:
       timeout_seconds: 3
       success_threshold: 1
 
+  adminer:
+    command: podman run --rm --name lay-adminer-dev -p 58080:8080 docker.io/library/adminer:latest
+    depends_on:
+      postgres:
+        condition: process_healthy
+    availability:
+      restart: on_failure
+
   backend:
     command: cargo watch -w src -w $(git rev-parse --show-toplevel)/.env -x run
     working_dir: ./backend
