@@ -1,9 +1,10 @@
+use reqwest::StatusCode;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CliError {
-    #[error("API request failed: {0}")]
-    ApiError(String),
+    #[error("API request failed: {status} - {message}")]
+    ApiError { status: StatusCode, message: String },
 
     #[error("Configuration error: {0}")]
     ConfigError(String),

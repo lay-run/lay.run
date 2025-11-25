@@ -3,6 +3,7 @@ mod health;
 mod user;
 
 use crate::cli::{Cli, Commands};
+use crate::client::ApiClient;
 use crate::error::Result;
 
 pub async fn execute(cli: Cli) -> Result<()> {
@@ -13,22 +14,25 @@ pub async fn execute(cli: Cli) -> Result<()> {
         _ => eprintln!("[DEBUG] Debug mode enabled"),
     }
 
+    // Create shared API client
+    let client = ApiClient::new(cli.api_url)?;
+
     // Execute the appropriate command
     match &cli.command {
         Commands::Register { email, password } => {
-            auth::register(&cli.api_url, email.clone(), password.clone(), cli.output).await
+            auth::register(&client, email.clone(), password.clone(), cli.output).await
         }
         Commands::Login { email, password } => {
-            auth::login(&cli.api_url, email.clone(), password.clone(), cli.output).await
+            auth::login(&client, email.clone(), password.clone(), cli.output).await
         }
         Commands::Verify { email, code } => {
-            auth::verify(&cli.api_url, email.clone(), code.clone(), cli.output).await
+            auth::verify(&client, email.clone(), code.clone(), cli.output).await
         }
         Commands::Resend { email } => {
-            auth::resend_code(&cli.api_url, email.clone(), cli.output).await
+            auth::resend_code(&client, email.clone(), cli.output).await
         }
         Commands::Logout => auth::logout(cli.output).await,
-        Commands::User(user_cmd) => user::execute(user_cmd.clone(), &cli).await,
-        Commands::Health(health_cmd) => health::execute(health_cmd.clone(), &cli).await,
+        Commands::User(user_cmd) => user::execute(user_cmd.clone(), &client, cli.output).await,
+        Commands::Health(health_cmd) => health::execute(health_cmd.clone(), &client, cli.output).await,
     }
 }

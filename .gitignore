@@ -3,6 +3,10 @@
 .env.*
 !.env.example
 
+# Rust
+target/
+Cargo.lock
+
 # Devbox
 .devbox/
 devbox.lock

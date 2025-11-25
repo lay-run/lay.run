@@ -32,8 +32,9 @@ pub async fn rate_limit_middleware(
     };
 
     // Extract email from request body if needed
+    const MAX_BODY_SIZE: usize = 10 * 1024 * 1024; // 10MB
     let (parts, body) = request.into_parts();
-    let bytes = axum::body::to_bytes(body, usize::MAX)
+    let bytes = axum::body::to_bytes(body, MAX_BODY_SIZE)
         .await
         .map_err(|e| RateLimitError::BodyReadError(e.to_string()))?;
 

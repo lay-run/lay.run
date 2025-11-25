@@ -1,41 +1,23 @@
-use crate::cli::{Cli, OutputFormat, UserCommands, UserSubcommand};
-use crate::commands::auth::load_token;
-use crate::error::{CliError, Result};
+use crate::cli::{OutputFormat, UserCommands, UserSubcommand};
+use crate::client::ApiClient;
+use crate::config::load_token;
+use crate::error::Result;
+use crate::types::UserResponse;
 use colored::Colorize;
-use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
-struct User {
-    id: String,
-    email: String,
-    email_verified: bool,
-}
-
-pub async fn execute(cmd: UserCommands, cli: &Cli) -> Result<()> {
+pub async fn execute(cmd: UserCommands, client: &ApiClient, output: OutputFormat) -> Result<()> {
     match cmd.command {
-        UserSubcommand::Me => get_me(&cli.api_url, cli.output).await,
+        UserSubcommand::Me => get_me(client, output).await,
         UserSubcommand::List { limit, offset } => {
-            list_users(&cli.api_url, limit, offset, cli.output).await
+            list_users(client, limit, offset, output).await
         }
     }
 }
 
-async fn get_me(api_url: &str, output: OutputFormat) -> Result<()> {
+async fn get_me(client: &ApiClient, output: OutputFormat) -> Result<()> {
     let token = load_token()?;
 
-    let client = reqwest::Client::new();
-    let response = client
-        .get(format!("{}/api/user/me", api_url))
-        .bearer_auth(token)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let error_text = response.text().await?;
-        return Err(CliError::ApiError(error_text));
-    }
-
-    let user: User = response.json().await?;
+    let user: UserResponse = client.get_with_token("/api/user/me", &token).await?;
 
     match output {
         OutputFormat::Json => println!("{}", serde_json::to_string(&user)?),
@@ -47,7 +29,7 @@ async fn get_me(api_url: &str, output: OutputFormat) -> Result<()> {
             println!("Email:          {}", user.email);
             println!(
                 "Email Verified: {}",
-                if user.email_verified {
+                if user.is_verified {
                     "✓ Yes".green()
                 } else {
                     "✗ No".red()
@@ -60,27 +42,14 @@ async fn get_me(api_url: &str, output: OutputFormat) -> Result<()> {
 }
 
 async fn list_users(
-    api_url: &str,
-    limit: u32,
-    offset: u32,
+    client: &ApiClient,
+    _limit: u32,
+    _offset: u32,
     output: OutputFormat,
 ) -> Result<()> {
     let token = load_token()?;
 
-    let client = reqwest::Client::new();
-    let response = client
-        .get(format!("{}/api/user/list", api_url))
-        .bearer_auth(token)
-        .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let error_text = response.text().await?;
-        return Err(CliError::ApiError(error_text));
-    }
-
-    let users: Vec<User> = response.json().await?;
+    let users: Vec<UserResponse> = client.get_with_token("/api/user/list", &token).await?;
 
     match output {
         OutputFormat::Json => println!("{}", serde_json::to_string(&users)?),
@@ -93,7 +62,7 @@ async fn list_users(
                     "{} {} {}",
                     user.id.bright_blue(),
                     user.email,
-                    if user.email_verified {
+                    if user.is_verified {
                         "✓".green()
                     } else {
                         "✗".red()

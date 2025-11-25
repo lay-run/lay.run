@@ -1,33 +1,18 @@
-use crate::cli::{Cli, HealthCommands, HealthSubcommand, OutputFormat};
-use crate::error::{CliError, Result};
+use crate::cli::{HealthCommands, HealthSubcommand, OutputFormat};
+use crate::client::ApiClient;
+use crate::error::Result;
+use crate::types::HealthResponse;
 use colored::Colorize;
-use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
-struct HealthResponse {
-    status: String,
-}
-
-pub async fn execute(cmd: HealthCommands, cli: &Cli) -> Result<()> {
+pub async fn execute(cmd: HealthCommands, client: &ApiClient, output: OutputFormat) -> Result<()> {
     match cmd.command {
-        HealthSubcommand::Check => check_health(&cli.api_url, cli.output).await,
-        HealthSubcommand::Db => check_db_health(&cli.api_url, cli.output).await,
+        HealthSubcommand::Check => check_health(client, output).await,
+        HealthSubcommand::Db => check_db_health(client, output).await,
     }
 }
 
-async fn check_health(api_url: &str, output: OutputFormat) -> Result<()> {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(format!("{}/api/health", api_url))
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let error_text = response.text().await?;
-        return Err(CliError::ApiError(error_text));
-    }
-
-    let health: HealthResponse = response.json().await?;
+async fn check_health(client: &ApiClient, output: OutputFormat) -> Result<()> {
+    let health: HealthResponse = client.get("/api/health").await?;
 
     match output {
         OutputFormat::Json => println!("{}", serde_json::to_string(&health)?),
@@ -44,19 +29,8 @@ async fn check_health(api_url: &str, output: OutputFormat) -> Result<()> {
     Ok(())
 }
 
-async fn check_db_health(api_url: &str, output: OutputFormat) -> Result<()> {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(format!("{}/api/health/db", api_url))
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let error_text = response.text().await?;
-        return Err(CliError::ApiError(error_text));
-    }
-
-    let health: HealthResponse = response.json().await?;
+async fn check_db_health(client: &ApiClient, output: OutputFormat) -> Result<()> {
+    let health: HealthResponse = client.get("/api/health/db").await?;
 
     match output {
         OutputFormat::Json => println!("{}", serde_json::to_string(&health)?),
