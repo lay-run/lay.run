@@ -1,4 +1,5 @@
-use clap::{Parser, Subcommand, builder::Styles};
+use clap::builder::Styles;
+use clap::{Parser, Subcommand};
 
 /// lay - infrastructure, simplified
 #[derive(Parser)]
@@ -49,7 +50,7 @@ pub enum Commands {
     /// create a new account
     #[command(help_template = "\
 {about-with-newline}
-usage: lay register [options] <email> [command]
+usage: lay register <email> [command]
 
 commands:
 {subcommands}
@@ -63,10 +64,6 @@ options:
         #[arg(value_name = "email")]
         email: String,
 
-        /// your password (we'll ask if you skip this)
-        #[arg(short, long, value_name = "password")]
-        password: Option<String>,
-
         #[command(subcommand)]
         action: Option<RegisterAction>,
     },
@@ -74,7 +71,7 @@ options:
     /// sign in to your account
     #[command(help_template = "\
 {about-with-newline}
-usage: lay login [options] <email>
+usage: lay login [email]
 
 arguments:
 {positionals}
@@ -82,17 +79,45 @@ options:
 {options}{after-help}
 ")]
     Login {
-        /// your email
+        /// your email (we'll use your last email if you skip this)
         #[arg(value_name = "email")]
-        email: String,
-
-        /// your password (we'll ask if you skip this)
-        #[arg(short, long, value_name = "password")]
-        password: Option<String>,
+        email: Option<String>,
     },
 
     /// sign out
     Logout,
+
+    /// enable two-factor authentication
+    #[command(help_template = "\
+{about-with-newline}
+usage: lay totp enable <email>
+
+arguments:
+{positionals}
+
+options:
+{options}")]
+    Totp {
+        #[command(subcommand)]
+        action: TotpAction,
+    },
+}
+
+#[derive(Subcommand, Clone)]
+pub enum TotpAction {
+    /// enable totp for your account
+    Enable {
+        /// your email
+        #[arg(value_name = "email")]
+        email: String,
+    },
+
+    /// disable totp for your account
+    Disable {
+        /// your email
+        #[arg(value_name = "email")]
+        email: String,
+    },
 }
 
 #[derive(Subcommand, Clone)]

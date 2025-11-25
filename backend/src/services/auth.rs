@@ -1,22 +1,18 @@
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
-};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
 
 use crate::error::{AppError, Result};
-use crate::models::{
-    user::User,
-    verification_code::{VerificationCode, VerificationCodeType},
-};
+use crate::models::user::User;
+use crate::models::verification_code::{VerificationCode, VerificationCodeType};
 
 const MAX_VERIFICATION_ATTEMPTS: i32 = 5;
-const CODE_EXPIRY_MINUTES: i64 = 10;
+const CODE_EXPIRY_MINUTES: i64 = 5;
+const CODE_LENGTH: usize = 8;
 const JWT_EXPIRY_DAYS: i64 = 30;
 
 /// JWT Claims structure
@@ -41,38 +37,27 @@ impl AuthService {
         Self { pool, jwt_secret }
     }
 
-    /// Hash a password using Argon2
-    pub fn hash_password(&self, password: &str) -> Result<String> {
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-
-        let password_hash = argon2
-            .hash_password(password.as_bytes(), &salt)
-            .map_err(|e| {
-                tracing::error!("Failed to hash password: {:?}", e);
-                AppError::PasswordHashFailed
-            })?
-            .to_string();
-
-        Ok(password_hash)
-    }
-
-    /// Verify a password against a hash
-    pub fn verify_password(&self, password: &str, hash: &str) -> Result<()> {
-        let parsed_hash = PasswordHash::new(hash).map_err(|e| {
-            tracing::error!("Failed to parse password hash: {:?}", e);
-            AppError::InvalidCredentials
-        })?;
-
-        Argon2::default()
-            .verify_password(password.as_bytes(), &parsed_hash)
-            .map_err(|_| AppError::InvalidCredentials)
-    }
-
-    /// Generate a 6-digit verification code
+    /// Generate a pronounceable verification code (CVCVCVCV pattern)
     pub fn generate_verification_code(&self) -> String {
         let mut rng = rand::thread_rng();
-        format!("{:06}", rng.gen_range(0..1000000))
+        let consonants = [
+            'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'r', 's', 't', 'v', 'w',
+            'x', 'z',
+        ];
+        let vowels = ['a', 'e', 'i', 'o', 'u'];
+
+        let mut code = String::with_capacity(CODE_LENGTH);
+        for i in 0..CODE_LENGTH {
+            if i % 2 == 0 {
+                // Consonant
+                code.push(consonants[rng.gen_range(0..consonants.len())]);
+            } else {
+                // Vowel
+                code.push(vowels[rng.gen_range(0..vowels.len())]);
+            }
+        }
+
+        code.to_uppercase()
     }
 
     /// Generate JWT token for authenticated user
@@ -87,15 +72,11 @@ impl AuthService {
             iat: now.timestamp(),
         };
 
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(self.jwt_secret.as_bytes()),
-        )
-        .map_err(|e| {
-            tracing::error!("Failed to generate JWT: {:?}", e);
-            AppError::TokenGenerationFailed
-        })
+        encode(&Header::default(), &claims, &EncodingKey::from_secret(self.jwt_secret.as_bytes()))
+            .map_err(|e| {
+                tracing::error!("Failed to generate JWT: {:?}", e);
+                AppError::TokenGenerationFailed
+            })
     }
 
     /// Verify JWT token and extract claims
@@ -110,15 +91,10 @@ impl AuthService {
     }
 
     /// Register a new user
-    pub async fn register_user(&self, email: &str, password: &str) -> Result<User> {
+    pub async fn register_user(&self, email: &str) -> Result<User> {
         // Validate email format
         if !self.is_valid_email(email) {
             return Err(AppError::InvalidEmail);
-        }
-
-        // Validate password strength
-        if !self.is_strong_password(password) {
-            return Err(AppError::WeakPassword);
         }
 
         // Check if user already exists
@@ -126,19 +102,15 @@ impl AuthService {
             return Err(AppError::UserAlreadyExists);
         }
 
-        // Hash password
-        let password_hash = self.hash_password(password)?;
-
         // Create user
         let user = sqlx::query_as::<_, User>(
             r#"
-            INSERT INTO users (email, password_hash, is_verified)
-            VALUES ($1, $2, $3)
+            INSERT INTO users (email, is_verified)
+            VALUES ($1, $2)
             RETURNING *
             "#,
         )
         .bind(email)
-        .bind(&password_hash)
         .bind(false)
         .fetch_one(&self.pool)
         .await
@@ -310,12 +282,91 @@ impl AuthService {
         }
     }
 
-    /// Validate password strength
-    pub(crate) fn is_strong_password(&self, password: &str) -> bool {
-        password.len() >= 8
-            && password.chars().any(|c| c.is_uppercase())
-            && password.chars().any(|c| c.is_lowercase())
-            && password.chars().any(|c| c.is_numeric())
+    /// Generate TOTP secret and provisioning URI
+    pub fn generate_totp_secret(&self, email: &str) -> Result<(String, String)> {
+        let secret = Secret::generate_secret();
+        let totp = TOTP::new(
+            totp_rs::Algorithm::SHA1,
+            6,
+            1,
+            30,
+            secret.to_bytes().unwrap(),
+            Some("lay.run".to_string()),
+            email.to_string(),
+        )
+        .map_err(|e| {
+            tracing::error!("Failed to create TOTP: {:?}", e);
+            AppError::TotpGenerationFailed
+        })?;
+
+        let secret_str = secret.to_encoded().to_string();
+        let uri = totp.get_url();
+
+        Ok((secret_str, uri))
+    }
+
+    /// Verify TOTP code
+    pub fn verify_totp(&self, secret: &str, code: &str) -> Result<()> {
+        let secret_bytes = Secret::Encoded(secret.to_string()).to_bytes().map_err(|e| {
+            tracing::error!("Failed to decode TOTP secret: {:?}", e);
+            AppError::InvalidTotpSecret
+        })?;
+
+        let totp = TOTP::new(
+            totp_rs::Algorithm::SHA1,
+            6,
+            1,
+            30,
+            secret_bytes,
+            Some("lay.run".to_string()),
+            "".to_string(),
+        )
+        .map_err(|e| {
+            tracing::error!("Failed to create TOTP for verification: {:?}", e);
+            AppError::InvalidTotpSecret
+        })?;
+
+        if totp.check_current(code).map_err(|e| {
+            tracing::error!("TOTP verification failed: {:?}", e);
+            AppError::InvalidTotpCode
+        })? {
+            Ok(())
+        } else {
+            Err(AppError::InvalidTotpCode)
+        }
+    }
+
+    /// Enable TOTP for user
+    pub async fn enable_totp(&self, user_id: Uuid, secret: &str) -> Result<()> {
+        sqlx::query(
+            "UPDATE users SET totp_secret = $1, totp_enabled = true, updated_at = NOW() WHERE id = $2",
+        )
+        .bind(secret)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to enable TOTP: {:?}", e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(())
+    }
+
+    /// Disable TOTP for user
+    pub async fn disable_totp(&self, user_id: Uuid) -> Result<()> {
+        sqlx::query(
+            "UPDATE users SET totp_secret = NULL, totp_enabled = false, updated_at = NOW() WHERE id = $2",
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to disable TOTP: {:?}", e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(())
     }
 }
 
@@ -325,45 +376,6 @@ mod tests {
     use crate::models::user::User;
 
     #[tokio::test]
-    async fn test_password_hashing_and_verification() {
-        let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
-        let service = AuthService::new(pool, "test-secret".to_string());
-        let password = "SecurePassword123";
-
-        // Hash password
-        let hash = service
-            .hash_password(password)
-            .expect("Failed to hash password");
-
-        // Verify correct password
-        assert!(service.verify_password(password, &hash).is_ok());
-
-        // Verify incorrect password fails
-        assert!(service.verify_password("WrongPassword", &hash).is_err());
-    }
-
-    #[tokio::test]
-    async fn test_password_hashing_generates_different_hashes() {
-        let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
-        let service = AuthService::new(pool, "test-secret".to_string());
-        let password = "SecurePassword123";
-
-        let hash1 = service
-            .hash_password(password)
-            .expect("Failed to hash password");
-        let hash2 = service
-            .hash_password(password)
-            .expect("Failed to hash password");
-
-        // Same password should generate different hashes (due to salt)
-        assert_ne!(hash1, hash2);
-
-        // Both hashes should verify the same password
-        assert!(service.verify_password(password, &hash1).is_ok());
-        assert!(service.verify_password(password, &hash2).is_ok());
-    }
-
-    #[tokio::test]
     async fn test_verification_code_format() {
         let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
         let service = AuthService::new(pool, "test-secret".to_string());
@@ -371,14 +383,25 @@ mod tests {
         for _ in 0..100 {
             let code = service.generate_verification_code();
 
-            // Code should be exactly 6 digits
-            assert_eq!(code.len(), 6);
+            // Code should be exactly CODE_LENGTH characters
+            assert_eq!(code.len(), CODE_LENGTH);
 
-            // Code should only contain digits
-            assert!(code.chars().all(|c| c.is_numeric()));
+            // Code should only contain letters
+            assert!(code.chars().all(|c| c.is_alphabetic()));
 
-            // Code should be a valid number
-            assert!(code.parse::<u32>().is_ok());
+            // Code should be uppercase
+            assert!(code.chars().all(|c| c.is_uppercase()));
+
+            // Verify CVCVCVCV pattern
+            for (i, ch) in code.chars().enumerate() {
+                if i % 2 == 0 {
+                    // Even positions should be consonants
+                    assert!(!['A', 'E', 'I', 'O', 'U'].contains(&ch));
+                } else {
+                    // Odd positions should be vowels
+                    assert!(['A', 'E', 'I', 'O', 'U'].contains(&ch));
+                }
+            }
         }
     }
 
@@ -401,24 +424,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_password_strength_validation() {
-        let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
-        let service = AuthService::new(pool, "test-secret".to_string());
-
-        // Strong passwords
-        assert!(service.is_strong_password("SecurePass123"));
-        assert!(service.is_strong_password("MyP@ssw0rd"));
-        assert!(service.is_strong_password("ValidPassword1"));
-
-        // Weak passwords
-        assert!(!service.is_strong_password("short1A")); // Too short
-        assert!(!service.is_strong_password("alllowercase123")); // No uppercase
-        assert!(!service.is_strong_password("ALLUPPERCASE123")); // No lowercase
-        assert!(!service.is_strong_password("NoNumbers")); // No numbers
-        assert!(!service.is_strong_password("")); // Empty
-    }
-
-    #[tokio::test]
     async fn test_jwt_token_generation_and_verification() {
         let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
         let service = AuthService::new(pool, "test-secret-key-for-jwt-signing".to_string());
@@ -426,8 +431,9 @@ mod tests {
         let user = User {
             id: Uuid::new_v4(),
             email: "test@example.com".to_string(),
-            password_hash: "hash".to_string(),
             is_verified: true,
+            totp_enabled: false,
+            totp_secret: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
@@ -458,15 +464,14 @@ mod tests {
         let user = User {
             id: Uuid::new_v4(),
             email: "test@example.com".to_string(),
-            password_hash: "hash".to_string(),
             is_verified: true,
+            totp_enabled: false,
+            totp_secret: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
 
-        let token = other_service
-            .generate_jwt(&user)
-            .expect("Failed to generate JWT");
+        let token = other_service.generate_jwt(&user).expect("Failed to generate JWT");
 
         // Verification with different service should fail
         assert!(service.verify_jwt(&token).is_err());

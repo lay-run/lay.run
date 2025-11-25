@@ -17,15 +17,19 @@ processes:
     command: cargo watch -w src -w $(git rev-parse --show-toplevel)/.env -x run
     working_dir: ./backend
     environment:
-      - DATABASE_URL=postgres://postgres:devpassword123@localhost:55432/backend
-      - HOST=0.0.0.0
-      - PORT=3000
-      - RUST_LOG=info,backend=debug
-      - SES_FROM_EMAIL=${SES_FROM_EMAIL}
-      - SES_REPLY_TO_EMAIL=${SES_REPLY_TO_EMAIL}
-      - JWT_SECRET=${JWT_SECRET}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - AWS_PROFILE=${AWS_PROFILE}
+      - "DATABASE_URL=postgres://postgres:devpassword123@localhost:55432/backend"
+      - "HOST=0.0.0.0"
+      - "PORT=3000"
+      - "RUST_LOG=info,backend=debug"
+      - "SES_FROM_EMAIL=${SES_FROM_EMAIL}"
+      - "SES_REPLY_TO_EMAIL=${SES_REPLY_TO_EMAIL}"
+      - "JWT_SECRET=${JWT_SECRET}"
+      - "AWS_REGION=${AWS_REGION:-us-east-1}"
+      - "AWS_PROFILE=${AWS_PROFILE}"
+      - "OPENSSL_DIR=${OPENSSL_DIR}"
+      - "OPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}"
+      - "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}"
+      - "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}"
     depends_on:
       postgres:
         condition: process_healthy
@@ -35,5 +39,10 @@ processes:
   cli:
     command: cargo watch -x 'build --release'
     working_dir: ./cli
+    environment:
+      - "OPENSSL_DIR=${OPENSSL_DIR}"
+      - "OPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}"
+      - "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}"
+      - "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}"
     availability:
       restart: on_failure

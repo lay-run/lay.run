@@ -1,7 +1,10 @@
-use crate::error::{CliError, Result};
-use reqwest::Response;
-use serde::{Serialize, de::DeserializeOwned};
 use std::time::Duration;
+
+use reqwest::Response;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+
+use crate::error::{CliError, Result};
 
 pub struct ApiClient {
     client: reqwest::Client,
@@ -10,10 +13,15 @@ pub struct ApiClient {
 
 impl ApiClient {
     pub fn new(base_url: String) -> Result<Self> {
+        // Build a descriptive user-agent with OS information
+        let os = std::env::consts::OS;
+        let arch = std::env::consts::ARCH;
+        let user_agent = format!("lay-cli/{} ({}/{})", env!("CARGO_PKG_VERSION"), os, arch);
+
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10))
-            .user_agent(format!("lay-cli/{}", env!("CARGO_PKG_VERSION")))
+            .user_agent(user_agent)
             .build()?;
 
         Ok(Self { client, base_url })

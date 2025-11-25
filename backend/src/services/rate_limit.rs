@@ -1,7 +1,8 @@
-use chrono::{DateTime, Utc};
-use sqlx::PgPool;
 use std::net::IpAddr;
 use std::time::Duration;
+
+use chrono::{DateTime, Utc};
+use sqlx::PgPool;
 
 #[derive(Debug, Clone)]
 pub enum RateLimitIdentifier {
@@ -52,10 +53,7 @@ impl RateLimitConfig {
 
     /// Creates a custom configuration
     pub fn new(requests_per_window: i32, window_duration: Duration) -> Self {
-        Self {
-            requests_per_window,
-            window_duration,
-        }
+        Self { requests_per_window, window_duration }
     }
 }
 
@@ -126,11 +124,8 @@ impl RateLimitService {
         let current_count = result;
         let allowed = current_count <= self.config.requests_per_window;
 
-        let retry_after = if !allowed {
-            Some(self.calculate_retry_after(window_start))
-        } else {
-            None
-        };
+        let retry_after =
+            if !allowed { Some(self.calculate_retry_after(window_start)) } else { None };
 
         Ok(RateLimitResult {
             allowed,
@@ -157,9 +152,7 @@ impl RateLimitService {
         let now = Utc::now();
 
         if window_end > now {
-            (window_end - now)
-                .to_std()
-                .unwrap_or(Duration::from_secs(1))
+            (window_end - now).to_std().unwrap_or(Duration::from_secs(1))
         } else {
             Duration::from_secs(1)
         }
@@ -210,11 +203,8 @@ impl RateLimitService {
             Some((current_count, window_start)) => {
                 let allowed = current_count < self.config.requests_per_window;
 
-                let retry_after = if !allowed {
-                    Some(self.calculate_retry_after(window_start))
-                } else {
-                    None
-                };
+                let retry_after =
+                    if !allowed { Some(self.calculate_retry_after(window_start)) } else { None };
 
                 Ok(Some(RateLimitResult {
                     allowed,

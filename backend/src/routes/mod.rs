@@ -1,23 +1,19 @@
 pub mod auth;
 pub mod health;
 
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use axum::Router;
+use axum::routing::{get, post};
 use sqlx::PgPool;
 
-use crate::services::{auth::AuthService, email::EmailService};
+use crate::services::auth::AuthService;
+use crate::services::email::EmailService;
 
 pub fn create_routes(
     pool: PgPool,
     auth_service: AuthService,
     email_service: EmailService,
 ) -> Router {
-    let auth_state = auth::AppState {
-        auth_service,
-        email_service,
-    };
+    let auth_state = auth::AppState { auth_service, email_service };
 
     Router::new()
         // Health routes
@@ -30,5 +26,8 @@ pub fn create_routes(
         .route("/auth/login", post(auth::login))
         .route("/auth/login/verify", post(auth::verify_login))
         .route("/auth/resend-code", post(auth::resend_code))
+        .route("/auth/totp/setup", post(auth::setup_totp))
+        .route("/auth/totp/enable", post(auth::enable_totp))
+        .route("/auth/totp/disable", post(auth::disable_totp))
         .with_state(auth_state)
 }

@@ -17,9 +17,7 @@ impl Config {
 
         let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
-        let port = env::var("PORT")
-            .unwrap_or_else(|_| "3000".to_string())
-            .parse::<u16>()?;
+        let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string()).parse::<u16>()?;
 
         let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set in environment");
 
@@ -29,14 +27,7 @@ impl Config {
         let ses_reply_to_email =
             env::var("SES_REPLY_TO_EMAIL").expect("SES_REPLY_TO_EMAIL must be set in environment");
 
-        Ok(Self {
-            database_url,
-            host,
-            port,
-            jwt_secret,
-            ses_from_email,
-            ses_reply_to_email,
-        })
+        Ok(Self { database_url, host, port, jwt_secret, ses_from_email, ses_reply_to_email })
     }
 
     pub fn server_address(&self) -> String {

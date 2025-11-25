@@ -2,6 +2,7 @@ use aws_sdk_ses::Client as SesClient;
 use aws_sdk_ses::types::{Body, Content, Destination, Message};
 
 use crate::error::{AppError, Result};
+use crate::routes::auth::LoginMetadata;
 
 /// Email service for sending emails via AWS SES
 #[derive(Clone)]
@@ -17,44 +18,73 @@ impl EmailService {
         let config = aws_config::load_from_env().await;
         let client = SesClient::new(&config);
 
-        Ok(Self {
-            client,
-            from_email,
-            reply_to_email,
-        })
+        Ok(Self { client, from_email, reply_to_email })
     }
 
     /// Send verification code email
     pub async fn send_verification_code(&self, to_email: &str, code: &str) -> Result<()> {
-        let subject = "Your Verification Code";
+        let subject = format!("lay.run - {} is your verification code", code);
         let body = format!(
             "Your verification code is: {}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.",
             code
         );
 
-        self.send_email(to_email, subject, &body).await
+        self.send_email(to_email, &subject, &body).await
     }
 
     /// Send password reset email
     pub async fn send_password_reset(&self, to_email: &str, code: &str) -> Result<()> {
-        let subject = "Password Reset Code";
+        let subject = format!("lay.run - {} is your password reset code", code);
         let body = format!(
             "Your password reset code is: {}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.",
             code
         );
 
-        self.send_email(to_email, subject, &body).await
+        self.send_email(to_email, &subject, &body).await
     }
 
     /// Send login verification code
-    pub async fn send_login_code(&self, to_email: &str, code: &str) -> Result<()> {
-        let subject = "Your Login Code";
+    pub async fn send_login_code(
+        &self,
+        to_email: &str,
+        code: &str,
+        metadata: &LoginMetadata,
+    ) -> Result<()> {
+        let subject = format!("lay.run - {} is your verification code", code);
+
+        // Format timestamp
+        let timestamp = metadata.timestamp.format("%B %d, %Y at %H:%M:%S UTC");
+
+        // Format location
+        let location = if let Some(loc) = &metadata.location {
+            format!("{} (IP: {})", loc, metadata.ip)
+        } else {
+            format!("IP: {}", metadata.ip)
+        };
+
         let body = format!(
-            "Your login code is: {}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please secure your account immediately.",
-            code
+            r#"Your login code is: {}
+
+This code will expire in 10 minutes.
+
+Login Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Date & Time:  {}
+Device:       {}
+Browser:      {}
+OS:           {}
+Location:     {}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you didn't request this code or don't recognize this activity,
+please secure your account immediately by enabling Two-Factor
+Authentication (2FA).
+
+This is an automated security notification to keep your account safe."#,
+            code, timestamp, metadata.device, metadata.browser, metadata.os, location
         );
 
-        self.send_email(to_email, subject, &body).await
+        self.send_email(to_email, &subject, &body).await
     }
 
     /// Generic email sending function
@@ -67,10 +97,7 @@ impl EmailService {
 
         let body_obj = Body::builder().text(body_content).build();
 
-        let msg = Message::builder()
-            .subject(subject_content)
-            .body(body_obj)
-            .build();
+        let msg = Message::builder().subject(subject_content).body(body_obj).build();
 
         self.client
             .send_email()

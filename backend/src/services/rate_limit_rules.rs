@@ -1,6 +1,7 @@
-use super::rate_limit::{RateLimitConfig, RateLimitIdentifier};
 use std::net::IpAddr;
 use std::time::Duration;
+
+use super::rate_limit::{RateLimitConfig, RateLimitIdentifier};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IdentifierType {

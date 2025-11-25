@@ -1,8 +1,6 @@
-use axum::{
-    Json,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use axum::Json;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use serde_json::json;
 
 #[derive(thiserror::Error, Debug)]
@@ -65,6 +63,16 @@ pub enum AppError {
     #[error("Failed to send email")]
     EmailSendFailed,
 
+    // TOTP errors
+    #[error("Failed to generate TOTP")]
+    TotpGenerationFailed,
+
+    #[error("Invalid TOTP secret")]
+    InvalidTotpSecret,
+
+    #[error("Invalid TOTP code")]
+    InvalidTotpCode,
+
     // AWS SDK errors
     #[error("AWS SDK error: {0}")]
     AwsSdk(String),
@@ -124,6 +132,12 @@ impl IntoResponse for AppError {
                 tracing::error!("Email send failed");
                 (StatusCode::INTERNAL_SERVER_ERROR, "Failed to send email")
             }
+            AppError::TotpGenerationFailed => {
+                tracing::error!("TOTP generation failed");
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+            }
+            AppError::InvalidTotpSecret => (StatusCode::BAD_REQUEST, "Invalid TOTP secret"),
+            AppError::InvalidTotpCode => (StatusCode::UNAUTHORIZED, "Invalid TOTP code"),
             AppError::AwsSdk(ref msg) => {
                 tracing::error!("AWS SDK error: {}", msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, "AWS service error")

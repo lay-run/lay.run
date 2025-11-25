@@ -20,13 +20,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
 
       - name: Check formatting for ${{ matrix.crate }}
-        run: cargo fmt --manifest-path ${{ matrix.crate }}/Cargo.toml --all -- --check
+        run: cargo +nightly fmt --manifest-path ${{ matrix.crate }}/Cargo.toml --all -- --check
 
   clippy:
     name: Lint (Clippy)
@@ -61,7 +61,7 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run Clippy for ${{ matrix.crate }}
-        run: cargo clippy --manifest-path ${{ matrix.crate }}/Cargo.toml --all-targets --all-features -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.crate }}/Cargo.toml --all-targets --all-features -- -D warnings -W clippy::all -W clippy::pedantic
 
   build:
     name: Build

@@ -1,21 +1,15 @@
-use backend::{
-    config::Config,
-    create_app, db,
-    services::{
-        auth::AuthService,
-        email::EmailService,
-        rate_limit::{RateLimitConfig, RateLimitService},
-    },
-};
 use std::net::SocketAddr;
+
+use backend::config::Config;
+use backend::services::auth::AuthService;
+use backend::services::email::EmailService;
+use backend::services::rate_limit::{RateLimitConfig, RateLimitService};
+use backend::{create_app, db};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_target(false)
-        .compact()
-        .init();
+    tracing_subscriber::fmt().with_target(false).compact().init();
 
     // Load configuration
     let config = Config::from_env()?;
@@ -29,11 +23,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize services
     let auth_service = AuthService::new(pool.clone(), config.jwt_secret.clone());
-    let email_service = EmailService::new(
-        config.ses_from_email.clone(),
-        config.ses_reply_to_email.clone(),
-    )
-    .await?;
+    let email_service =
+        EmailService::new(config.ses_from_email.clone(), config.ses_reply_to_email.clone()).await?;
 
     // Initialize rate limiting service
     // The actual rate limits are endpoint-specific and defined in rate_limit_rules.rs:
@@ -73,11 +64,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Server listening on {}", config.server_address());
 
     // IMPORTANT: Use into_make_service_with_connect_info to extract client IP addresses
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await?;
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;
 
     Ok(())
 }

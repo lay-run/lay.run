@@ -1,6 +1,7 @@
-use crate::config::load_token;
-use crate::display::Display;
 use colored::Colorize;
+
+use crate::display::Display;
+use crate::token;
 
 pub fn show() {
     println!();
@@ -18,9 +19,9 @@ pub fn show() {
     println!();
 
     // Show user status if logged in
-    if let Ok(token) = load_token() {
+    if let Ok(jwt_token) = token::load() {
         // Decode JWT to get email (simple base64 decode of payload)
-        if let Some(email) = extract_email_from_jwt(&token) {
+        if let Some(email) = extract_email_from_jwt(&jwt_token) {
             println!("  {}", Display::success(&format!("logged in as {}", email)));
             println!();
         }
@@ -47,9 +48,7 @@ fn extract_email_from_jwt(token: &str) -> Option<String> {
     let decoded = base64_decode(payload)?;
     let json: serde_json::Value = serde_json::from_str(&decoded).ok()?;
 
-    json.get("email")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+    json.get("email").and_then(|v| v.as_str()).map(|s| s.to_string())
 }
 
 fn base64_decode(input: &str) -> Option<String> {

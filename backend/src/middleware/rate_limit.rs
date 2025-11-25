@@ -1,13 +1,13 @@
-use axum::{
-    body::Body,
-    extract::{ConnectInfo, Request, State},
-    http::{HeaderMap, StatusCode},
-    middleware::Next,
-    response::{IntoResponse, Response},
-};
 use std::net::SocketAddr;
 
-use crate::services::{rate_limit::RateLimitService, rate_limit_rules::RateLimitRules};
+use axum::body::Body;
+use axum::extract::{ConnectInfo, Request, State};
+use axum::http::{HeaderMap, StatusCode};
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
+
+use crate::services::rate_limit::RateLimitService;
+use crate::services::rate_limit_rules::RateLimitRules;
 
 /// Rate limiting middleware with endpoint-specific rules
 pub async fn rate_limit_middleware(
@@ -116,11 +116,7 @@ fn add_rate_limit_headers(
 
 #[derive(Debug)]
 pub enum RateLimitError {
-    RateLimitExceeded {
-        retry_after_secs: u64,
-        limit: i32,
-        current: i32,
-    },
+    RateLimitExceeded { retry_after_secs: u64, limit: i32, current: i32 },
     DatabaseError(String),
     BodyReadError(String),
     IdentifierError(&'static str),
@@ -129,11 +125,7 @@ pub enum RateLimitError {
 impl IntoResponse for RateLimitError {
     fn into_response(self) -> Response {
         match self {
-            RateLimitError::RateLimitExceeded {
-                retry_after_secs,
-                limit,
-                current,
-            } => {
+            RateLimitError::RateLimitExceeded { retry_after_secs, limit, current } => {
                 let body = serde_json::json!({
                     "error": "Rate limit exceeded",
                     "message": format!("Too many requests. Limit: {} requests. Current: {} requests.", limit, current),
