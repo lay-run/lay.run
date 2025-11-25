@@ -69,7 +69,7 @@ impl CliError {
                 let msg = if e.kind() == std::io::ErrorKind::NotFound {
                     "not logged in".to_string()
                 } else {
-                    format!("{}", e).to_lowercase()
+                    format!("{e}").to_lowercase()
                 };
                 eprintln!("{}", Display::error(&msg));
             }
@@ -79,12 +79,12 @@ impl CliError {
                 } else if e.is_connect() {
                     "cannot connect to server".to_string()
                 } else {
-                    format!("{}", e).to_lowercase()
+                    format!("{e}").to_lowercase()
                 };
                 eprintln!("{}", Display::error(&msg));
             }
             CliError::JsonError(_) => {
-                eprintln!("{}", Display::error("invalid response from server"))
+                eprintln!("{}", Display::error("invalid response from server"));
             }
         }
     }

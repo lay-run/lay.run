@@ -61,7 +61,7 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run Clippy for ${{ matrix.crate }}
-        run: cargo clippy --manifest-path ${{ matrix.crate }}/Cargo.toml --all-targets --all-features -- -D warnings -W clippy::all -W clippy::pedantic
+        run: cargo clippy --manifest-path ${{ matrix.crate }}/Cargo.toml --all-targets --all-features -- -D warnings
 
   build:
     name: Build

@@ -34,7 +34,7 @@ pub async fn execute(cli: Cli) -> Result<()> {
             }
         },
         Commands::Login { email } => auth::login(&client, email.clone(), cli.output).await,
-        Commands::Logout => auth::logout(cli.output).await,
+        Commands::Logout => auth::logout(cli.output),
         Commands::Totp { action } => match action {
             TotpAction::Enable { email } => {
                 auth::enable_totp(&client, email.clone(), cli.output).await

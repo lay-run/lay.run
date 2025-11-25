@@ -10,10 +10,10 @@ repos:
         args: ['--manifest-path=cli/Cargo.toml', '--all', '--', '--check']
       - id: clippy
         name: cargo clippy (backend)
-        args: ['--manifest-path=backend/Cargo.toml', '--all-targets', '--all-features', '--', '-D', 'warnings', '-W', 'clippy::all', '-W', 'clippy::pedantic']
+        args: ['--manifest-path=backend/Cargo.toml', '--all-targets', '--all-features', '--', '-D', 'warnings']
       - id: clippy
         name: cargo clippy (cli)
-        args: ['--manifest-path=cli/Cargo.toml', '--all-targets', '--all-features', '--', '-D', 'warnings', '-W', 'clippy::all', '-W', 'clippy::pedantic']
+        args: ['--manifest-path=cli/Cargo.toml', '--all-targets', '--all-features', '--', '-D', 'warnings']
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0

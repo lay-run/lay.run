@@ -104,11 +104,11 @@ impl AuthService {
 
         // Create user
         let user = sqlx::query_as::<_, User>(
-            r#"
+            r"
             INSERT INTO users (email, is_verified)
             VALUES ($1, $2)
             RETURNING *
-            "#,
+            ",
         )
         .bind(email)
         .bind(false)
@@ -132,10 +132,10 @@ impl AuthService {
         let expires_at = Utc::now() + Duration::minutes(CODE_EXPIRY_MINUTES);
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO verification_codes (user_id, code, code_type, expires_at)
             VALUES ($1, $2, $3, $4)
-            "#,
+            ",
         )
         .bind(user_id)
         .bind(&code)
@@ -160,12 +160,12 @@ impl AuthService {
     ) -> Result<()> {
         // Fetch the verification code
         let mut verification_code = sqlx::query_as::<_, VerificationCode>(
-            r#"
+            r"
             SELECT * FROM verification_codes
             WHERE user_id = $1 AND code_type = $2 AND is_used = false
             ORDER BY created_at DESC
             LIMIT 1
-            "#,
+            ",
         )
         .bind(user_id)
         .bind(code_type.as_str())

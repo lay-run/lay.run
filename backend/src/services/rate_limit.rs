@@ -102,7 +102,7 @@ impl RateLimitService {
 
         // Upsert: increment if exists, insert if not
         let result = sqlx::query_scalar::<_, i32>(
-            r#"
+            r"
             INSERT INTO rate_limits (identifier, ip_address, endpoint, request_count, window_start, updated_at)
             VALUES ($1, CAST($2 AS INET), $3, 1, $4, NOW())
             ON CONFLICT (identifier, endpoint, window_start)
@@ -110,7 +110,7 @@ impl RateLimitService {
                 request_count = rate_limits.request_count + 1,
                 updated_at = NOW()
             RETURNING request_count
-            "#,
+            ",
         )
         .bind(&identifier_str)
         .bind(ip_address)
@@ -164,10 +164,10 @@ impl RateLimitService {
             Utc::now() - chrono::Duration::from_std(self.config.window_duration * 2).unwrap();
 
         let result = sqlx::query(
-            r#"
+            r"
             DELETE FROM rate_limits
             WHERE window_start < $1
-            "#,
+            ",
         )
         .bind(cutoff)
         .execute(&self.pool)
@@ -187,11 +187,11 @@ impl RateLimitService {
         let identifier_str = identifier.as_string();
 
         let result: Option<(i32, DateTime<Utc>)> = sqlx::query_as(
-            r#"
+            r"
             SELECT request_count, window_start
             FROM rate_limits
             WHERE identifier = $1 AND endpoint = $2 AND window_start = $3
-            "#,
+            ",
         )
         .bind(&identifier_str)
         .bind(endpoint)

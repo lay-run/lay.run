@@ -63,7 +63,7 @@ impl EmailService {
         };
 
         let body = format!(
-            r#"Your login code is: {}
+            r"Your login code is: {}
 
 This code will expire in 10 minutes.
 
@@ -80,7 +80,7 @@ If you didn't request this code or don't recognize this activity,
 please secure your account immediately by enabling Two-Factor
 Authentication (2FA).
 
-This is an automated security notification to keep your account safe."#,
+This is an automated security notification to keep your account safe.",
             code, timestamp, metadata.device, metadata.browser, metadata.os, location
         );
 

@@ -150,7 +150,7 @@ async fn verify_login(
     Ok(())
 }
 
-pub async fn logout(output: OutputFormat) -> Result<()> {
+pub fn logout(output: OutputFormat) -> Result<()> {
     token::clear()?;
 
     match output {
@@ -183,9 +183,9 @@ pub async fn enable_totp(client: &ApiClient, email: String, output: OutputFormat
             println!();
 
             match qr2term::print_qr(&setup.uri) {
-                Ok(_) => {}
+                Ok(()) => {}
                 Err(e) => {
-                    println!("{}", Display::error(&format!("failed to generate qr code: {}", e)));
+                    println!("{}", Display::error(&format!("failed to generate qr code: {e}")));
                     println!();
                     println!("{}", Display::info("manual entry:"));
                     println!("  secret: {}", setup.secret);
