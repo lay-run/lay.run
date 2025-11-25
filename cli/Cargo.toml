@@ -31,6 +31,9 @@ indicatif = "0.17"
 # Password input
 rpassword = "7.3"
 
+# Base64 encoding/decoding
+base64 = "0.22"
+
 [dev-dependencies]
 assert_cmd = "2.0"
 predicates = "3.1"

@@ -612,6 +612,7 @@ dependencies = [
  "anstyle",
  "anyhow",
  "assert_cmd",
+ "base64",
  "clap",
  "colored",
  "indicatif",
