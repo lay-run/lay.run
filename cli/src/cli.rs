@@ -12,7 +12,7 @@ pub struct Cli {
         short,
         long,
         env = "LAY_API_URL",
-        default_value = "http://localhost:8000"
+        default_value = "http://localhost:3000"
     )]
     pub api_url: String,
 

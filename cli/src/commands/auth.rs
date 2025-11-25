@@ -60,7 +60,7 @@ pub async fn register(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("{}/api/auth/register", api_url))
+        .post(format!("{}/auth/register", api_url))
         .json(&RegisterRequest { email, password })
         .send()
         .await?;
@@ -99,7 +99,7 @@ pub async fn login(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("{}/api/auth/login", api_url))
+        .post(format!("{}/auth/login", api_url))
         .json(&LoginRequest { email, password })
         .send()
         .await?;
@@ -131,7 +131,7 @@ pub async fn verify(
 ) -> Result<()> {
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("{}/api/auth/verify", api_url))
+        .post(format!("{}/auth/verify", api_url))
         .json(&VerifyRequest { email, code })
         .send()
         .await?;
@@ -163,7 +163,7 @@ pub async fn verify(
 pub async fn resend_code(api_url: &str, email: String, output: OutputFormat) -> Result<()> {
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("{}/api/auth/resend-code", api_url))
+        .post(format!("{}/auth/resend-code", api_url))
         .json(&ResendCodeRequest { email })
         .send()
         .await?;
