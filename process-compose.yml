@@ -14,7 +14,7 @@ processes:
       success_threshold: 1
 
   backend:
-    command: cargo watch -x run
+    command: cargo watch -w src -w $(git rev-parse --show-toplevel)/.env -x run
     working_dir: ./backend
     depends_on:
       postgres:
