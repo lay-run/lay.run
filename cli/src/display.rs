@@ -1,25 +1,25 @@
 use colored::Colorize;
 
-/// UI symbols and utilities
-pub struct Ui;
+/// Display formatting utilities for CLI output
+pub struct Display;
 
-impl Ui {
-    /// Success symbol (✓)
+impl Display {
+    /// Format success message with checkmark (✓)
     pub fn success(msg: &str) -> String {
         format!("{} {}", "✓".green().bold(), msg.green())
     }
 
-    /// Info symbol (→)
+    /// Format info message with arrow (→)
     pub fn info(msg: &str) -> String {
         format!("{} {}", "→".cyan().bold(), msg.cyan())
     }
 
-    /// Error symbol (✗)
+    /// Format error message with cross (✗)
     pub fn error(msg: &str) -> String {
         format!("{} {}", "✗".red().bold(), msg.red())
     }
 
-    /// Prompt text (magenta)
+    /// Format prompt text (magenta)
     pub fn prompt(text: &str) -> String {
         text.magenta().to_string()
     }

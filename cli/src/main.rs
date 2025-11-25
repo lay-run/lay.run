@@ -2,9 +2,9 @@ mod cli;
 mod client;
 mod commands;
 mod config;
+mod display;
 mod error;
 mod types;
-mod ui;
 
 use clap::Parser;
 use cli::Cli;

@@ -1,9 +1,9 @@
 use crate::cli::OutputFormat;
 use crate::client::ApiClient;
 use crate::config::{save_token, clear_token};
+use crate::display::Display;
 use crate::error::{CliError, Result};
 use crate::types::{AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest, VerifyRequest, VerifyLoginRequest};
-use crate::ui::Ui;
 
 pub async fn register(
     client: &ApiClient,
@@ -19,8 +19,8 @@ pub async fn register(
     let password = match password {
         Some(p) => p,
         None => {
-            let pass = rpassword::prompt_password(&Ui::prompt("password: "))?;
-            let confirm = rpassword::prompt_password(&Ui::prompt("confirm: "))?;
+            let pass = rpassword::prompt_password(&Display::prompt("password: "))?;
+            let confirm = rpassword::prompt_password(&Display::prompt("confirm: "))?;
 
             if pass != confirm {
                 return Err(CliError::ConfigError("passwords do not match".to_string()));
@@ -38,12 +38,12 @@ pub async fn register(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", Ui::info(&result.message));
+            println!("{}", Display::info(&result.message));
         }
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password(&Ui::prompt("enter code: "))?;
+    let code = rpassword::prompt_password(&Display::prompt("enter code: "))?;
 
     // Verify email
     verify(client, email, code, output).await
@@ -62,7 +62,7 @@ pub async fn login(
 
     let password = match password {
         Some(p) => p,
-        None => rpassword::prompt_password(&Ui::prompt("password: "))?
+        None => rpassword::prompt_password(&Display::prompt("password: "))?
     };
 
     let result: CodeSentResponse = client
@@ -73,12 +73,12 @@ pub async fn login(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", Ui::info(&result.message));
+            println!("{}", Display::info(&result.message));
         }
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password(&Ui::prompt("enter code: "))?;
+    let code = rpassword::prompt_password(&Display::prompt("enter code: "))?;
 
     // Verify login
     verify_login(client, email, code, output).await
@@ -100,7 +100,7 @@ pub async fn verify(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", Ui::success("email verified"));
+            println!("{}", Display::success("email verified"));
         }
     }
 
@@ -116,7 +116,7 @@ pub async fn resend_code(client: &ApiClient, email: String, output: OutputFormat
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", Ui::info(&result.message));
+            println!("{}", Display::info(&result.message));
         }
     }
 
@@ -139,7 +139,7 @@ async fn verify_login(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", Ui::success("logged in"));
+            println!("{}", Display::success("logged in"));
         }
     }
 
@@ -155,7 +155,7 @@ pub async fn logout(output: OutputFormat) -> Result<()> {
             println!("{}", serde_json::json!({"message": "logged out"}))
         }
         OutputFormat::Text => {
-            println!("{}", Ui::success("logged out"));
+            println!("{}", Display::success("logged out"));
         }
     }
 

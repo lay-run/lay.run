@@ -1,4 +1,4 @@
-use crate::ui::Ui;
+use crate::display::Display;
 use reqwest::StatusCode;
 use thiserror::Error;
 
@@ -52,16 +52,16 @@ impl CliError {
                     500..=599 => "server error, try again later",
                     _ => &message.to_lowercase(),
                 };
-                eprintln!("{}", Ui::error(msg));
+                eprintln!("{}", Display::error(msg));
             }
-            CliError::ConfigError(msg) => eprintln!("{}", Ui::error(&msg.to_lowercase())),
+            CliError::ConfigError(msg) => eprintln!("{}", Display::error(&msg.to_lowercase())),
             CliError::IoError(e) => {
                 let msg = if e.kind() == std::io::ErrorKind::NotFound {
                     "not logged in".to_string()
                 } else {
                     format!("{}", e).to_lowercase()
                 };
-                eprintln!("{}", Ui::error(&msg));
+                eprintln!("{}", Display::error(&msg));
             }
             CliError::HttpError(e) => {
                 let msg = if e.is_timeout() {
@@ -71,9 +71,9 @@ impl CliError {
                 } else {
                     format!("{}", e).to_lowercase()
                 };
-                eprintln!("{}", Ui::error(&msg));
+                eprintln!("{}", Display::error(&msg));
             }
-            CliError::JsonError(_) => eprintln!("{}", Ui::error("invalid response from server")),
+            CliError::JsonError(_) => eprintln!("{}", Display::error("invalid response from server")),
         }
     }
 }
