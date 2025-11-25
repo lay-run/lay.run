@@ -16,6 +16,16 @@ processes:
   backend:
     command: cargo watch -w src -w $(git rev-parse --show-toplevel)/.env -x run
     working_dir: ./backend
+    environment:
+      - DATABASE_URL=postgres://postgres:devpassword123@localhost:55432/backend
+      - HOST=0.0.0.0
+      - PORT=3000
+      - RUST_LOG=info,backend=debug
+      - SES_FROM_EMAIL=${SES_FROM_EMAIL}
+      - SES_REPLY_TO_EMAIL=${SES_REPLY_TO_EMAIL}
+      - JWT_SECRET=${JWT_SECRET}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_PROFILE=${AWS_PROFILE}
     depends_on:
       postgres:
         condition: process_healthy
