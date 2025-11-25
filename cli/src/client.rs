@@ -38,13 +38,24 @@ impl ApiClient {
 
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
+
+            // Try to parse JSON error response
+            let message = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&error_text) {
+                // Extract error message from {"error": "..."} or {"message": "..."}
+                json.get("error")
+                    .or_else(|| json.get("message"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| error_text)
+            } else if error_text.is_empty() {
+                "no error details".to_string()
+            } else {
+                error_text
+            };
+
             return Err(CliError::ApiError {
                 status,
-                message: if error_text.is_empty() {
-                    "No error details".to_string()
-                } else {
-                    error_text
-                },
+                message,
             });
         }
 

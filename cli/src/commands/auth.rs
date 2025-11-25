@@ -3,6 +3,7 @@ use crate::client::ApiClient;
 use crate::config::{save_token, clear_token};
 use crate::error::{CliError, Result};
 use crate::types::{AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest, VerifyRequest, VerifyLoginRequest};
+use colored::Colorize;
 
 pub async fn register(
     client: &ApiClient,
@@ -13,8 +14,8 @@ pub async fn register(
     let password = match password {
         Some(p) => p,
         None => {
-            let pass = rpassword::prompt_password("password: ")?;
-            let confirm = rpassword::prompt_password("confirm: ")?;
+            let pass = rpassword::prompt_password(&format!("{}", "password: ".magenta()))?;
+            let confirm = rpassword::prompt_password(&format!("{}", "confirm: ".magenta()))?;
 
             if pass != confirm {
                 return Err(CliError::ConfigError("passwords do not match".to_string()));
@@ -32,12 +33,12 @@ pub async fn register(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", result.message);
+            println!("{} {}", "→".cyan().bold(), result.message.cyan());
         }
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password("enter code: ")?;
+    let code = rpassword::prompt_password(&format!("{}", "enter code: ".magenta()))?;
 
     // Verify email
     verify(client, email, code, output).await
@@ -51,7 +52,7 @@ pub async fn login(
 ) -> Result<()> {
     let password = match password {
         Some(p) => p,
-        None => rpassword::prompt_password("password: ")?
+        None => rpassword::prompt_password(&format!("{}", "password: ".magenta()))?
     };
 
     let result: CodeSentResponse = client
@@ -62,12 +63,12 @@ pub async fn login(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", result.message);
+            println!("{} {}", "→".cyan().bold(), result.message.cyan());
         }
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password("enter code: ")?;
+    let code = rpassword::prompt_password(&format!("{}", "enter code: ".magenta()))?;
 
     // Verify login
     verify_login(client, email, code, output).await
@@ -89,7 +90,7 @@ pub async fn verify(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("email verified");
+            println!("{} {}", "✓".green().bold(), "email verified".green());
         }
     }
 
@@ -105,7 +106,7 @@ pub async fn resend_code(client: &ApiClient, email: String, output: OutputFormat
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("{}", result.message);
+            println!("{} {}", "→".cyan().bold(), result.message.cyan());
         }
     }
 
@@ -128,7 +129,7 @@ async fn verify_login(
         OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
-            println!("logged in");
+            println!("{} {}", "✓".green().bold(), "logged in".green());
         }
     }
 
@@ -144,7 +145,7 @@ pub async fn logout(output: OutputFormat) -> Result<()> {
             println!("{}", serde_json::json!({"message": "logged out"}))
         }
         OutputFormat::Text => {
-            println!("logged out");
+            println!("{} {}", "✓".cyan().bold(), "logged out".cyan());
         }
     }
 

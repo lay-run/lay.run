@@ -22,53 +22,57 @@ pub enum CliError {
 
 impl CliError {
     pub fn display(&self) {
+        let error_prefix = format!("{}", "✗".red().bold());
+
         match self {
             CliError::ApiError { status, message } => {
                 match status.as_u16() {
                     400 => {
-                        if message.contains("Email already exists") {
-                            eprintln!("lay: {}", "email already registered".red());
-                        } else if message.contains("Invalid credentials") {
-                            eprintln!("lay: {}", "invalid email or password".red());
-                        } else if message.contains("Invalid verification code") {
-                            eprintln!("lay: {}", "invalid or expired verification code".red());
-                        } else if message.contains("Passwords do not match") {
-                            eprintln!("lay: {}", "passwords do not match".red());
+                        if message.contains("email already exists") || message.contains("Email already exists") {
+                            eprintln!("{} {}", error_prefix, "email already registered".red());
+                        } else if message.contains("invalid credentials") || message.contains("Invalid credentials") {
+                            eprintln!("{} {}", error_prefix, "invalid email or password".red());
+                        } else if message.contains("invalid verification code") || message.contains("Invalid verification code") {
+                            eprintln!("{} {}", error_prefix, "invalid or expired verification code".red());
+                        } else if message.contains("passwords do not match") || message.contains("Passwords do not match") {
+                            eprintln!("{} {}", error_prefix, "passwords do not match".red());
+                        } else if message.contains("invalid email format") {
+                            eprintln!("{} {}", error_prefix, "invalid email format".red());
                         } else {
-                            eprintln!("lay: {}", message.to_lowercase().red());
+                            eprintln!("{} {}", error_prefix, message.to_lowercase().red());
                         }
                     }
-                    401 => eprintln!("lay: {}", "authentication failed".red()),
-                    404 => eprintln!("lay: {}", "not found".red()),
+                    401 => eprintln!("{} {}", error_prefix, "authentication failed".red()),
+                    404 => eprintln!("{} {}", error_prefix, "not found".red()),
                     429 => {
-                        if message.contains("Too many requests") {
-                            eprintln!("lay: {}", "too many attempts, try again later".red());
+                        if message.contains("too many") || message.contains("Too many") {
+                            eprintln!("{} {}", error_prefix, "too many attempts, try again later".red());
                         } else {
-                            eprintln!("lay: {}", message.to_lowercase().red());
+                            eprintln!("{} {}", error_prefix, message.to_lowercase().red());
                         }
                     }
-                    500..=599 => eprintln!("lay: {}", "server error, try again later".red()),
-                    _ => eprintln!("lay: {}", message.to_lowercase().red()),
+                    500..=599 => eprintln!("{} {}", error_prefix, "server error, try again later".red()),
+                    _ => eprintln!("{} {}", error_prefix, message.to_lowercase().red()),
                 }
             }
-            CliError::ConfigError(msg) => eprintln!("lay: {}", msg.to_lowercase().red()),
+            CliError::ConfigError(msg) => eprintln!("{} {}", error_prefix, msg.to_lowercase().red()),
             CliError::IoError(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
-                    eprintln!("lay: {}", "not logged in".red());
+                    eprintln!("{} {}", error_prefix, "not logged in".red());
                 } else {
-                    eprintln!("lay: {}", format!("{}", e).to_lowercase().red());
+                    eprintln!("{} {}", error_prefix, format!("{}", e).to_lowercase().red());
                 }
             }
             CliError::HttpError(e) => {
                 if e.is_timeout() {
-                    eprintln!("lay: {}", "request timed out".red());
+                    eprintln!("{} {}", error_prefix, "request timed out".red());
                 } else if e.is_connect() {
-                    eprintln!("lay: {}", "cannot connect to server".red());
+                    eprintln!("{} {}", error_prefix, "cannot connect to server".red());
                 } else {
-                    eprintln!("lay: {}", format!("{}", e).to_lowercase().red());
+                    eprintln!("{} {}", error_prefix, format!("{}", e).to_lowercase().red());
                 }
             }
-            CliError::JsonError(_) => eprintln!("lay: {}", "invalid response from server".red()),
+            CliError::JsonError(_) => eprintln!("{} {}", error_prefix, "invalid response from server".red()),
         }
     }
 }

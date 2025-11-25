@@ -1,6 +1,6 @@
 use clap::{builder::Styles, Parser, Subcommand};
 
-/// lay.run - your infra
+/// lay - infrastructure, simplified
 #[derive(Parser)]
 #[command(name = "lay")]
 #[command(version, about, long_about = None)]
@@ -123,20 +123,20 @@ fn get_styles() -> Styles {
         .header(
             anstyle::Style::new()
                 .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Magenta))),
         )
         .usage(
             anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))),
         )
         .literal(
             anstyle::Style::new()
+                .bold()
                 .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))),
         )
         .placeholder(
             anstyle::Style::new()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Blue))),
         )
         .error(
             anstyle::Style::new()
