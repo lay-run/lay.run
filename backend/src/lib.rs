@@ -5,6 +5,7 @@ pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod services;
+pub mod utils;
 
 use axum::Router;
 use axum::middleware::from_fn_with_state;

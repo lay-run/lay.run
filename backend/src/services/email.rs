@@ -3,6 +3,7 @@ use aws_sdk_ses::types::{Body, Content, Destination, Message};
 
 use crate::error::{AppError, Result};
 use crate::routes::auth::LoginMetadata;
+use crate::utils::retry::RetryConfig;
 
 /// Email service for sending emails via AWS SES
 #[derive(Clone)]
@@ -87,7 +88,7 @@ This is an automated security notification to keep your account safe.",
         self.send_email(to_email, &subject, &body).await
     }
 
-    /// Generic email sending function
+    /// Generic email sending function with exponential backoff retry
     async fn send_email(&self, to_email: &str, subject: &str, body: &str) -> Result<()> {
         let dest = Destination::builder().to_addresses(to_email).build();
 
@@ -99,16 +100,33 @@ This is an automated security notification to keep your account safe.",
 
         let msg = Message::builder().subject(subject_content).body(body_obj).build();
 
-        self.client
-            .send_email()
-            .source(&self.from_email)
-            .destination(dest)
-            .message(msg)
-            .reply_to_addresses(&self.reply_to_email)
-            .send()
+        // Configure exponential backoff: 3 retries with base delay of 100ms
+        // Delays will be: 100ms, 200ms, 400ms (with jitter)
+        let retry_config = RetryConfig::new(100, 3);
+
+        let client = self.client.clone();
+        let from_email = self.from_email.clone();
+        let reply_to_email = self.reply_to_email.clone();
+        let to_email_owned = to_email.to_string();
+
+        retry_config
+            .retry(|| async {
+                client
+                    .send_email()
+                    .source(&from_email)
+                    .destination(dest.clone())
+                    .message(msg.clone())
+                    .reply_to_addresses(&reply_to_email)
+                    .send()
+                    .await
+                    .map_err(|e| {
+                        tracing::warn!("Email send attempt failed for {}: {:?}", to_email_owned, e);
+                        e
+                    })
+            })
             .await
             .map_err(|e| {
-                tracing::error!("Failed to send email: {:?}", e);
+                tracing::error!("Failed to send email after retries to {}: {:?}", to_email, e);
                 AppError::EmailSendFailed
             })?;
 
