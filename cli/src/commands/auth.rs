@@ -66,8 +66,13 @@ pub async fn register(
         .await?;
 
     if !response.status().is_success() {
-        let error_text = response.text().await?;
-        return Err(CliError::ApiError(error_text));
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_default();
+        return Err(CliError::ApiError(format!(
+            "HTTP {}: {}",
+            status,
+            if error_text.is_empty() { "No error details" } else { &error_text }
+        )));
     }
 
     let result: CodeSentResponse = response.json().await?;
