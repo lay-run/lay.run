@@ -19,6 +19,12 @@ pub struct VerifyRequest {
 }
 
 #[derive(Serialize)]
+pub struct VerifyLoginRequest {
+    pub email: String,
+    pub code: String,
+}
+
+#[derive(Serialize)]
 pub struct ResendCodeRequest {
     pub email: String,
 }

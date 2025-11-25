@@ -2,7 +2,7 @@ use crate::cli::OutputFormat;
 use crate::client::ApiClient;
 use crate::config::{save_token, clear_token};
 use crate::error::{CliError, Result};
-use crate::types::{AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest, VerifyRequest};
+use crate::types::{AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest, VerifyRequest, VerifyLoginRequest};
 
 pub async fn register(
     client: &ApiClient,
@@ -55,7 +55,7 @@ pub async fn login(
     };
 
     let result: CodeSentResponse = client
-        .post("/api/auth/login", &LoginRequest { email, password })
+        .post("/api/auth/login", &LoginRequest { email: email.clone(), password })
         .await?;
 
     match output {
@@ -66,7 +66,11 @@ pub async fn login(
         }
     }
 
-    Ok(())
+    // Prompt for verification code
+    let code = rpassword::prompt_password("Verification code: ")?;
+
+    // Verify login
+    verify_login(client, email, code, output).await
 }
 
 pub async fn verify(
@@ -102,6 +106,29 @@ pub async fn resend_code(client: &ApiClient, email: String, output: OutputFormat
         OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
         OutputFormat::Text => {
             println!("{}", result.message);
+        }
+    }
+
+    Ok(())
+}
+
+async fn verify_login(
+    client: &ApiClient,
+    email: String,
+    code: String,
+    output: OutputFormat,
+) -> Result<()> {
+    let result: AuthResponse = client
+        .post("/api/auth/login/verify", &VerifyLoginRequest { email, code })
+        .await?;
+
+    save_token(&result.token)?;
+
+    match output {
+        OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
+        OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
+        OutputFormat::Text => {
+            println!("Login successful");
         }
     }
 
