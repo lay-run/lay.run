@@ -1,0 +1,36 @@
+[package]
+name = "lay"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# CLI argument parsing with derive macros (latest best practice)
+clap = { version = "4.5", features = ["derive", "env", "wrap_help", "color"] }
+anstyle = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Serialization (for config files, API responses, etc.)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime (if needed for API calls)
+tokio = { version = "1.48", features = ["full"] }
+
+# HTTP client (for API interactions) - using rustls instead of native-tls for better portability
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Colored terminal output
+colored = "2.1"
+
+# Progress indicators
+indicatif = "0.17"
+
+# Password input
+rpassword = "7.3"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"

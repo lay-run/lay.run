@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/main/.schema/devbox.schema.json",
+  "packages": [
+    "rustup@latest",
+    "jq@latest",
+    "yq@latest",
+    "go-task@latest",
+    "curl@latest",
+    "httpie@latest",
+    "podman@latest",
+    "cargo-watch@latest",
+    "sqlx-cli@latest",
+    "process-compose@latest",
+    "tmux@latest",
+    "awscli2@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "export PATH=\"$PWD/cli/target/release:$PATH\"",
+      "echo '░██                       '",
+      "echo '░██                       '",
+      "echo '░██  ░██████   ░██    ░██ '",
+      "echo '░██       ░██  ░██    ░██ '",
+      "echo '░██  ░███████  ░██    ░██ '",
+      "echo '░██ ░██   ░██  ░██   ░███ '",
+      "echo '░██  ░█████░██  ░█████░██ '",
+      "echo '                      ░██ '",
+      "echo '                ░███████  '",
+      "echo '                          '",
+      "echo ''",
+      "echo 'Setting up Rust toolchain...'",
+      "if ! rustup toolchain list | grep -q 'stable'; then",
+      "  rustup default stable",
+      "else",
+      "  rustup default stable > /dev/null 2>&1",
+      "fi",
+      "echo 'Rust toolchain ready'",
+      "echo ''",
+      "echo 'Setting up backend environment...'",
+      "if [ ! -f backend/.env ]; then",
+      "  cp backend/.env.example backend/.env",
+      "  sed -i 's/postgres:postgres@localhost:5432/postgres:devpassword123@localhost:55432/' backend/.env",
+      "fi",
+      "echo ''",
+      "echo 'Commands:'",
+      "echo '  lay --help      - Use the Lay CLI'",
+      "echo '  devbox run up   - Start services in background (headless)'",
+      "echo '  devbox run logs - Attach to view logs (Ctrl+B then D to detach)'",
+      "echo '  devbox run down - Stop all services'",
+      "echo ''"
+    ],
+    "scripts": {
+      "up": "tmux new-session -d -s lay-dev 'process-compose up -t=false' && echo 'Services started in background. Use \"devbox run logs\" to view logs.'",
+      "logs": "if tmux has-session -t lay-dev 2>/dev/null; then echo 'Attaching to logs. Press Ctrl+B then D to detach.' && sleep 1 && tmux attach -t lay-dev; else echo 'No services running. Start with: devbox run up'; fi",
+      "down": "process-compose down && tmux kill-session -t lay-dev 2>/dev/null || true"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+version: "0.5"
+
+processes:
+  postgres:
+    command: podman run --rm --name lay-postgres-dev -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=devpassword123 -e POSTGRES_DB=backend -p 55432:5432 docker.io/library/postgres:16
+    availability:
+      restart: on_failure
+    readiness_probe:
+      exec:
+        command: "podman exec lay-postgres-dev pg_isready -U postgres"
+      initial_delay_seconds: 5
+      period_seconds: 5
+      timeout_seconds: 3
+      success_threshold: 1
+
+  backend:
+    command: cargo watch -x run
+    working_dir: ./backend
+    depends_on:
+      postgres:
+        condition: process_healthy
+    availability:
+      restart: on_failure
+
+  cli:
+    command: cargo watch -x 'build --release'
+    working_dir: ./cli
+    availability:
+      restart: on_failure
