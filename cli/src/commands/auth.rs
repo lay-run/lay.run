@@ -17,7 +17,7 @@ pub async fn register(
     };
 
     let result: CodeSentResponse = client
-        .post("/api/auth/register", &RegisterRequest { email, password })
+        .post("/api/auth/register", &RegisterRequest { email: email.clone(), password })
         .await?;
 
     match output {
@@ -28,7 +28,11 @@ pub async fn register(
         }
     }
 
-    Ok(())
+    // Prompt for verification code
+    let code = rpassword::prompt_password("Verification code: ")?;
+
+    // Verify email
+    verify(client, email, code, output).await
 }
 
 pub async fn login(

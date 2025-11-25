@@ -106,7 +106,7 @@ impl RateLimitService {
         let result = sqlx::query_scalar::<_, i32>(
             r#"
             INSERT INTO rate_limits (identifier, ip_address, endpoint, request_count, window_start, updated_at)
-            VALUES ($1, $2, $3, 1, $4, NOW())
+            VALUES ($1, CAST($2 AS INET), $3, 1, $4, NOW())
             ON CONFLICT (identifier, endpoint, window_start)
             DO UPDATE SET
                 request_count = rate_limits.request_count + 1,
