@@ -4,6 +4,7 @@ mod commands;
 mod config;
 mod display;
 mod error;
+mod greeting;
 mod types;
 
 use clap::Parser;

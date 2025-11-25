@@ -3,6 +3,7 @@ mod auth;
 use crate::cli::{Cli, Commands, RegisterAction};
 use crate::client::ApiClient;
 use crate::error::Result;
+use crate::greeting;
 
 pub async fn execute(cli: Cli) -> Result<()> {
     // Set up logging based on verbosity
@@ -12,11 +13,17 @@ pub async fn execute(cli: Cli) -> Result<()> {
         _ => eprintln!("[DEBUG] Debug mode enabled"),
     }
 
+    // Show greeting if no command provided
+    let Some(command) = &cli.command else {
+        greeting::show();
+        return Ok(());
+    };
+
     // Create shared API client
     let client = ApiClient::new(cli.api_url())?;
 
     // Execute the appropriate command
-    match &cli.command {
+    match command {
         Commands::Register {
             email,
             password,
