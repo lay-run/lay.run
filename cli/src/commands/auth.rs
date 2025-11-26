@@ -9,7 +9,7 @@ use crate::types::{
     AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest,
     TotpSetupResponse, TotpVerifyRequest, VerifyLoginRequest, VerifyRequest,
 };
-use crate::{session, token};
+use crate::{input, session, token};
 
 pub async fn register(client: &ApiClient, email: String, output: OutputFormat) -> Result<()> {
     // Validate email format early
@@ -29,7 +29,7 @@ pub async fn register(client: &ApiClient, email: String, output: OutputFormat) -
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password(Display::prompt("enter code: "))?;
+    let code = input::read_masked(&Display::prompt("enter code: "))?;
 
     // Verify email
     verify(client, email, code, output).await
@@ -70,7 +70,7 @@ pub async fn login(client: &ApiClient, email: Option<String>, output: OutputForm
     }
 
     // Prompt for verification code
-    let code = rpassword::prompt_password(Display::prompt("enter code: "))?;
+    let code = input::read_masked(&Display::prompt("enter code: "))?;
 
     // Verify login
     verify_login(client, email, code, output).await
@@ -200,7 +200,7 @@ pub async fn enable_totp(client: &ApiClient, output: OutputFormat) -> Result<()>
     }
 
     // Prompt for TOTP code to verify
-    let code = rpassword::prompt_password(Display::prompt("enter code: "))?;
+    let code = input::read_masked(&Display::prompt("enter code: "))?;
 
     // Enable TOTP
     let result: AuthResponse =

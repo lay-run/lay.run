@@ -5,6 +5,7 @@ mod config;
 mod display;
 mod error;
 mod greeting;
+mod input;
 mod session;
 mod token;
 mod types;
