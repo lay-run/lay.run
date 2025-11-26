@@ -52,18 +52,20 @@
       "fi",
       "echo ''",
       "echo 'Commands:'",
-      "echo '  lay --help      - Use the Lay CLI'",
-      "echo '  devbox run up   - Start services in background (headless)'",
-      "echo '  devbox run logs - Attach to view logs (Ctrl+B then D to detach)'",
-      "echo '  devbox run down - Stop all services'",
-      "echo '  devbox run kill - Kill all containers'",
+      "echo '  lay --help        - Use the Lay CLI'",
+      "echo '  devbox run up     - Start services in background (headless)'",
+      "echo '  devbox run logs   - Attach to view logs (Ctrl+B then D to detach)'",
+      "echo '  devbox run status - Check service and container status'",
+      "echo '  devbox run down   - Stop all services'",
+      "echo '  devbox run kill   - Kill all containers'",
       "echo ''"
     ],
     "scripts": {
       "up": "tmux new-session -d -s lay-dev 'process-compose up -t=false' && echo 'Services started in background. Use \"devbox run logs\" to view logs.'",
       "logs": "if tmux has-session -t lay-dev 2>/dev/null; then echo 'Attaching to logs. Press Ctrl+B then D to detach.' && sleep 1 && tmux attach -t lay-dev; else echo 'No services running. Start with: devbox run up'; fi",
       "down": "process-compose down && tmux kill-session -t lay-dev 2>/dev/null || true",
-      "kill": "tmux kill-session -t lay-dev 2>/dev/null || true; podman stop -t 1 lay-postgres-dev lay-adminer-dev 2>/dev/null || true; podman rm -f lay-postgres-dev lay-adminer-dev 2>/dev/null || true; echo 'All containers and sessions killed'"
+      "kill": "tmux kill-session -t lay-dev 2>/dev/null || true; podman stop -t 1 lay-postgres-dev lay-adminer-dev 2>/dev/null || true; podman rm -f lay-postgres-dev lay-adminer-dev 2>/dev/null || true; echo 'All containers and sessions killed'",
+      "status": "echo 'Service Status:' && echo '' && if tmux has-session -t lay-dev 2>/dev/null; then process-compose process list 2>/dev/null | tail -n +2 || echo 'Services running (use \"devbox run logs\" to view)'; else echo 'No services running'; fi && echo '' && echo 'Containers:' && podman ps --filter name=lay- --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || echo 'No containers running'"
     }
   }
 }
