@@ -9,9 +9,16 @@ lay/
 └── process-compose.yml
 ```
 
+## Requirements
+
+- [Devbox](https://www.jetify.com/devbox)
+- [direnv](https://direnv.net/)
+
+Devbox manages all other dependencies (Rust, Podman, PostgreSQL client, AWS CLI).
+
 ## Setup
 
-Development environment managed with [Devbox](https://www.jetify.com/devbox).
+Install dependencies and enter development shell:
 
 ```bash
 devbox shell
