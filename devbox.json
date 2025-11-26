@@ -63,7 +63,7 @@
       "up": "tmux new-session -d -s lay-dev 'process-compose up -t=false' && echo 'Services started in background. Use \"devbox run logs\" to view logs.'",
       "logs": "if tmux has-session -t lay-dev 2>/dev/null; then echo 'Attaching to logs. Press Ctrl+B then D to detach.' && sleep 1 && tmux attach -t lay-dev; else echo 'No services running. Start with: devbox run up'; fi",
       "down": "process-compose down && tmux kill-session -t lay-dev 2>/dev/null || true",
-      "kill": "podman rm -f lay-postgres-dev lay-adminer-dev 2>/dev/null || true && echo 'All containers killed'"
+      "kill": "tmux kill-session -t lay-dev 2>/dev/null || true; podman stop -t 1 lay-postgres-dev lay-adminer-dev 2>/dev/null || true; podman rm -f lay-postgres-dev lay-adminer-dev 2>/dev/null || true; echo 'All containers and sessions killed'"
     }
   }
 }

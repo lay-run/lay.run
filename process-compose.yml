@@ -14,7 +14,7 @@ processes:
       success_threshold: 1
 
   adminer:
-    command: podman run --rm --name lay-adminer-dev -p 58080:8080 -e ADMINER_DEFAULT_SERVER=host.containers.internal -e ADMINER_DESIGN=pepa-linha docker.io/library/adminer:latest
+    command: podman run --rm --name lay-adminer-dev -p 58080:8080 -e ADMINER_SERVER=host.containers.internal:55432 -e ADMINER_DB=backend -e ADMINER_USERNAME=postgres -e ADMINER_PASSWORD=devpassword123 -e ADMINER_DRIVER=pgsql -e ADMINER_AUTOLOGIN=1 -e ADMINER_NAME="Lay Development DB" docker.io/michalhosna/adminer:latest
     depends_on:
       postgres:
         condition: process_healthy
