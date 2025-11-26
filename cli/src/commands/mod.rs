@@ -1,9 +1,9 @@
 mod auth;
 
 use crate::cli::{Cli, Commands, RegisterAction, TotpAction};
-use crate::client::ApiClient;
 use crate::error::Result;
-use crate::greeting;
+use crate::services::api_client::ApiClient;
+use crate::ui::greeting;
 
 pub async fn execute(cli: Cli) -> Result<()> {
     // Set up logging based on verbosity

@@ -1,7 +1,7 @@
 use reqwest::StatusCode;
 use thiserror::Error;
 
-use crate::display::Display;
+use crate::ui::display::Display;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Error, Debug)]

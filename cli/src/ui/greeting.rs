@@ -1,7 +1,7 @@
 use colored::Colorize;
 
-use crate::display::Display;
-use crate::token;
+use crate::storage::token;
+use crate::ui::display::Display;
 
 pub fn show() {
     println!();

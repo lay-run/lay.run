@@ -1,32 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize)]
-pub struct RegisterRequest {
-    pub email: String,
-}
-
-#[derive(Serialize)]
-pub struct LoginRequest {
-    pub email: String,
-}
-
-#[derive(Serialize)]
-pub struct VerifyRequest {
-    pub email: String,
-    pub code: String,
-}
-
-#[derive(Serialize)]
-pub struct VerifyLoginRequest {
-    pub email: String,
-    pub code: String,
-}
-
-#[derive(Serialize)]
-pub struct ResendCodeRequest {
-    pub email: String,
-}
-
 #[derive(Deserialize, Serialize)]
 pub struct AuthResponse {
     pub user: UserResponse,
@@ -60,10 +33,4 @@ pub struct CodeSentResponse {
 pub struct TotpSetupResponse {
     pub secret: String,
     pub uri: String,
-}
-
-#[derive(Serialize)]
-pub struct TotpVerifyRequest {
-    pub email: String,
-    pub code: String,
 }

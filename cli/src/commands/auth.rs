@@ -1,15 +1,16 @@
 use colored::Colorize;
 
 use crate::cli::OutputFormat;
-use crate::client::ApiClient;
 use crate::config::should_show_totp_reminder;
-use crate::display::Display;
 use crate::error::{CliError, Result};
+use crate::services::api_client::ApiClient;
+use crate::storage::{session, token};
 use crate::types::{
     AuthResponse, CodeSentResponse, LoginRequest, LoginVerifyResponse, RegisterRequest,
     ResendCodeRequest, TotpSetupResponse, TotpVerifyRequest, VerifyLoginRequest, VerifyRequest,
 };
-use crate::{input, session, token};
+use crate::ui::display::Display;
+use crate::ui::input;
 
 pub async fn register(client: &ApiClient, email: String, output: OutputFormat) -> Result<()> {
     // Validate email format early
