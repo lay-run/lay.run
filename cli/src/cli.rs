@@ -87,13 +87,13 @@ options:
     /// sign out
     Logout,
 
-    /// enable two-factor authentication
+    /// manage two-factor authentication
     #[command(help_template = "\
 {about-with-newline}
-usage: lay totp enable <email>
+usage: lay totp <command>
 
-arguments:
-{positionals}
+commands:
+{subcommands}
 
 options:
 {options}")]
@@ -106,18 +106,10 @@ options:
 #[derive(Subcommand, Clone)]
 pub enum TotpAction {
     /// enable totp for your account
-    Enable {
-        /// your email
-        #[arg(value_name = "email")]
-        email: String,
-    },
+    Enable,
 
     /// disable totp for your account
-    Disable {
-        /// your email
-        #[arg(value_name = "email")]
-        email: String,
-    },
+    Disable,
 }
 
 #[derive(Subcommand, Clone)]

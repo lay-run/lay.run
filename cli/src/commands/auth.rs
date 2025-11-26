@@ -166,11 +166,10 @@ pub fn logout(output: OutputFormat) -> Result<()> {
     Ok(())
 }
 
-pub async fn enable_totp(client: &ApiClient, email: String, output: OutputFormat) -> Result<()> {
-    // Validate email format
-    if !is_valid_email(&email) {
-        return Err(CliError::ConfigError("invalid email format".to_string()));
-    }
+pub async fn enable_totp(client: &ApiClient, output: OutputFormat) -> Result<()> {
+    // Get email from saved session
+    let email = session::load_email()
+        .ok_or_else(|| CliError::ConfigError("not logged in. use 'lay login' first".to_string()))?;
 
     // Get TOTP setup info from backend
     let setup: TotpSetupResponse =
@@ -220,11 +219,10 @@ pub async fn enable_totp(client: &ApiClient, email: String, output: OutputFormat
     Ok(())
 }
 
-pub async fn disable_totp(client: &ApiClient, email: String, output: OutputFormat) -> Result<()> {
-    // Validate email format
-    if !is_valid_email(&email) {
-        return Err(CliError::ConfigError("invalid email format".to_string()));
-    }
+pub async fn disable_totp(client: &ApiClient, output: OutputFormat) -> Result<()> {
+    // Get email from saved session
+    let email = session::load_email()
+        .ok_or_else(|| CliError::ConfigError("not logged in. use 'lay login' first".to_string()))?;
 
     // Disable TOTP
     let result: AuthResponse =
