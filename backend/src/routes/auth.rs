@@ -250,8 +250,8 @@ pub async fn verify(
     // Fetch updated user (now verified)
     let user = state.auth_service.find_user_by_id(user.id).await?;
 
-    // Generate JWT token
-    let token = state.auth_service.generate_jwt(&user)?;
+    // Generate PASETO token
+    let token = state.auth_service.generate_token(&user)?;
 
     Ok(Json(AuthResponse { user: user.into(), token }))
 }
@@ -317,7 +317,7 @@ pub async fn verify_login(
     }
 
     // TOTP not enabled, issue token immediately
-    let token = state.auth_service.generate_jwt(&user)?;
+    let token = state.auth_service.generate_token(&user)?;
 
     Ok(Json(LoginVerifyResponse::Success { user: user.into(), token }))
 }
@@ -345,8 +345,8 @@ pub async fn verify_login_totp(
     // Verify TOTP code
     state.auth_service.verify_totp(totp_secret, &payload.code)?;
 
-    // Generate JWT token
-    let token = state.auth_service.generate_jwt(&user)?;
+    // Generate PASETO token
+    let token = state.auth_service.generate_token(&user)?;
 
     Ok(Json(AuthResponse { user: user.into(), token }))
 }
@@ -433,8 +433,8 @@ pub async fn enable_totp(
     // Fetch updated user
     let user = state.auth_service.find_user_by_id(user.id).await?;
 
-    // Generate JWT token
-    let token = state.auth_service.generate_jwt(&user)?;
+    // Generate PASETO token
+    let token = state.auth_service.generate_token(&user)?;
 
     Ok(Json(AuthResponse { user: user.into(), token }))
 }
@@ -454,8 +454,8 @@ pub async fn disable_totp(
     // Fetch updated user
     let user = state.auth_service.find_user_by_id(user.id).await?;
 
-    // Generate JWT token
-    let token = state.auth_service.generate_jwt(&user)?;
+    // Generate PASETO token
+    let token = state.auth_service.generate_token(&user)?;
 
     Ok(Json(AuthResponse { user: user.into(), token }))
 }

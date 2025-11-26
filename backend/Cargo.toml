@@ -39,7 +39,7 @@ aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-ses = "1"
 
 # Authentication
-jsonwebtoken = "9"
+rusty_paseto = "0.7"
 rand = "0.8"
 totp-rs = { version = "5", features = ["gen_secret", "otpauth"] }
 base32 = "0.5"

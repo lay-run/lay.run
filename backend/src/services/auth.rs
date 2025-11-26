@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use chrono::{Duration, Utc};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use rand::Rng;
+use rusty_paseto::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use totp_rs::{Secret, TOTP};
@@ -13,28 +15,42 @@ use crate::models::verification_code::{VerificationCode, VerificationCodeType};
 const MAX_VERIFICATION_ATTEMPTS: i32 = 5;
 const CODE_EXPIRY_MINUTES: i64 = 5;
 const CODE_LENGTH: usize = 8;
-const JWT_EXPIRY_DAYS: i64 = 30;
+const TOKEN_EXPIRY_DAYS: i64 = 30;
 
-/// JWT Claims structure
+/// PASETO token claims structure
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String, // User ID
-    pub email: String,
-    pub exp: i64, // Expiration timestamp
-    pub iat: i64, // Issued at timestamp
+    pub sub: String,   // User ID
+    pub email: String, // User email
+    pub exp: String,   // Expiration timestamp (ISO 8601)
+    pub iat: String,   // Issued at timestamp (ISO 8601)
 }
 
 /// Authentication service handling all auth-related business logic
 #[derive(Clone)]
 pub struct AuthService {
     pool: PgPool,
-    jwt_secret: String,
+    paseto_key: Arc<PasetoSymmetricKey<V4, Local>>,
 }
 
 impl AuthService {
     /// Create a new auth service instance
-    pub fn new(pool: PgPool, jwt_secret: String) -> Self {
-        Self { pool, jwt_secret }
+    pub fn new(pool: PgPool, secret: String) -> Self {
+        // Derive a 32-byte key from the secret
+        let key_bytes = if secret.len() >= 32 {
+            let mut bytes = [0u8; 32];
+            bytes.copy_from_slice(&secret.as_bytes()[..32]);
+            bytes
+        } else {
+            // If secret is too short, pad with zeros (not recommended for production)
+            let mut bytes = [0u8; 32];
+            let secret_bytes = secret.as_bytes();
+            bytes[..secret_bytes.len()].copy_from_slice(secret_bytes);
+            bytes
+        };
+
+        let paseto_key = Arc::new(PasetoSymmetricKey::from(Key::from(&key_bytes)));
+        Self { pool, paseto_key }
     }
 
     /// Generate a pronounceable verification code (CVCVCVCV pattern)
@@ -60,34 +76,42 @@ impl AuthService {
         code.to_uppercase()
     }
 
-    /// Generate JWT token for authenticated user
-    pub fn generate_jwt(&self, user: &User) -> Result<String> {
+    /// Generate PASETO token for authenticated user
+    pub fn generate_token(&self, user: &User) -> Result<String> {
         let now = Utc::now();
-        let exp = now + Duration::days(JWT_EXPIRY_DAYS);
+        let exp = now + Duration::days(TOKEN_EXPIRY_DAYS);
 
-        let claims = Claims {
-            sub: user.id.to_string(),
-            email: user.email.clone(),
-            exp: exp.timestamp(),
-            iat: now.timestamp(),
-        };
+        let user_id_str = user.id.to_string();
+        let email_str = user.email.clone();
 
-        encode(&Header::default(), &claims, &EncodingKey::from_secret(self.jwt_secret.as_bytes()))
+        PasetoBuilder::<V4, Local>::default()
+            .set_claim(SubjectClaim::from(user_id_str.as_str()))
+            .set_claim(CustomClaim::try_from(("email", email_str)).unwrap())
+            .set_claim(ExpirationClaim::try_from(exp.to_rfc3339().as_str()).unwrap())
+            .set_claim(IssuedAtClaim::try_from(now.to_rfc3339().as_str()).unwrap())
+            .build(&self.paseto_key)
             .map_err(|e| {
-                tracing::error!("Failed to generate JWT: {:?}", e);
+                tracing::error!("Failed to generate PASETO token: {:?}", e);
                 AppError::TokenGenerationFailed
             })
     }
 
-    /// Verify JWT token and extract claims
-    pub fn verify_jwt(&self, token: &str) -> Result<Claims> {
-        decode::<Claims>(
-            token,
-            &DecodingKey::from_secret(self.jwt_secret.as_bytes()),
-            &Validation::default(),
-        )
-        .map(|data| data.claims)
-        .map_err(|_| AppError::InvalidToken)
+    /// Verify PASETO token and extract claims
+    pub fn verify_token(&self, token: &str) -> Result<Claims> {
+        let json =
+            PasetoParser::<V4, Local>::default().parse(token, &self.paseto_key).map_err(|e| {
+                tracing::error!("Failed to verify PASETO token: {:?}", e);
+                AppError::InvalidToken
+            })?;
+
+        let claims = Claims {
+            sub: json["sub"].as_str().ok_or(AppError::InvalidToken)?.to_string(),
+            email: json["email"].as_str().ok_or(AppError::InvalidToken)?.to_string(),
+            exp: json["exp"].as_str().ok_or(AppError::InvalidToken)?.to_string(),
+            iat: json["iat"].as_str().ok_or(AppError::InvalidToken)?.to_string(),
+        };
+
+        Ok(claims)
     }
 
     /// Register a new user
@@ -439,9 +463,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_jwt_token_generation_and_verification() {
+    async fn test_paseto_token_generation_and_verification() {
         let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
-        let service = AuthService::new(pool, "test-secret-key-for-jwt-signing".to_string());
+        let service =
+            AuthService::new(pool, "test-secret-key-for-paseto-signing-32bytes".to_string());
 
         let user = User {
             id: Uuid::new_v4(),
@@ -454,28 +479,38 @@ mod tests {
             updated_at: Utc::now(),
         };
 
-        // Generate JWT
-        let token = service.generate_jwt(&user).expect("Failed to generate JWT");
+        // Generate PASETO token
+        let token = service.generate_token(&user).expect("Failed to generate PASETO token");
 
-        // Verify JWT
-        let claims = service.verify_jwt(&token).expect("Failed to verify JWT");
+        // Token should start with v4.local prefix
+        assert!(token.starts_with("v4.local."));
+
+        // Verify PASETO token
+        let claims = service.verify_token(&token).expect("Failed to verify PASETO token");
 
         // Check claims
         assert_eq!(claims.sub, user.id.to_string());
         assert_eq!(claims.email, user.email);
-        assert!(claims.exp > Utc::now().timestamp());
+
+        // Check expiration is in the future
+        let exp = chrono::DateTime::parse_from_rfc3339(&claims.exp).unwrap();
+        assert!(exp.timestamp() > Utc::now().timestamp());
     }
 
     #[tokio::test]
-    async fn test_jwt_verification_fails_for_invalid_token() {
+    async fn test_paseto_verification_fails_for_invalid_token() {
         let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
-        let service = AuthService::new(pool.clone(), "test-secret".to_string());
+        let service = AuthService::new(
+            pool.clone(),
+            "test-secret-key-for-paseto-signing-32bytes".to_string(),
+        );
 
         // Invalid token should fail
-        assert!(service.verify_jwt("invalid.token.here").is_err());
+        assert!(service.verify_token("invalid.token.here").is_err());
 
         // Token signed with different secret should fail
-        let other_service = AuthService::new(pool, "different-secret-key".to_string());
+        let other_service =
+            AuthService::new(pool, "different-secret-key-for-paseto-32b".to_string());
 
         let user = User {
             id: Uuid::new_v4(),
@@ -488,9 +523,9 @@ mod tests {
             updated_at: Utc::now(),
         };
 
-        let token = other_service.generate_jwt(&user).expect("Failed to generate JWT");
+        let token = other_service.generate_token(&user).expect("Failed to generate PASETO token");
 
         // Verification with different service should fail
-        assert!(service.verify_jwt(&token).is_err());
+        assert!(service.verify_token(&token).is_err());
     }
 }
