@@ -39,6 +39,10 @@ pub fn clear() -> Result<()> {
     Ok(())
 }
 
+pub fn exists() -> bool {
+    get_path().map(|path| path.exists()).unwrap_or(false)
+}
+
 fn get_path() -> Result<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| CliError::ConfigError("HOME environment variable not set".to_string()))?;

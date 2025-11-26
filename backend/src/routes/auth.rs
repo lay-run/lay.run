@@ -51,6 +51,16 @@ pub struct AuthResponse {
     pub token: String,
 }
 
+/// Response for login verification (may require TOTP)
+#[derive(Debug, Serialize)]
+#[serde(tag = "status")]
+pub enum LoginVerifyResponse {
+    #[serde(rename = "success")]
+    Success { user: UserResponse, token: String },
+    #[serde(rename = "totp_required")]
+    TotpRequired { message: String },
+}
+
 /// Response for code sent
 #[derive(Debug, Serialize)]
 pub struct CodeSentResponse {
@@ -67,6 +77,7 @@ pub struct TotpSetupResponse {
 /// Request body for TOTP verification
 #[derive(Debug, Deserialize)]
 pub struct TotpVerifyRequest {
+    pub email: String,
     pub code: String,
 }
 
@@ -286,16 +297,53 @@ pub async fn login(
 }
 
 /// POST /api/auth/login/verify
-/// Verify login code and return JWT token
+/// Verify login code and return JWT token or request TOTP
 pub async fn verify_login(
     State(state): State<AppState>,
     Json(payload): Json<VerifyRequest>,
-) -> Result<Json<AuthResponse>> {
+) -> Result<Json<LoginVerifyResponse>> {
     // Find user by email
     let user = state.auth_service.find_user_by_email(&payload.email).await?;
 
     // Verify login code
     state.auth_service.verify_code(user.id, &payload.code, VerificationCodeType::Login).await?;
+
+    // Check if TOTP is enabled
+    if user.totp_enabled {
+        // Don't issue token yet, require TOTP verification
+        return Ok(Json(LoginVerifyResponse::TotpRequired {
+            message: "TOTP code required".to_string(),
+        }));
+    }
+
+    // TOTP not enabled, issue token immediately
+    let token = state.auth_service.generate_jwt(&user)?;
+
+    Ok(Json(LoginVerifyResponse::Success { user: user.into(), token }))
+}
+
+/// POST /api/auth/login/verify-totp
+/// Verify TOTP code during login and return JWT token
+pub async fn verify_login_totp(
+    State(state): State<AppState>,
+    Json(payload): Json<TotpVerifyRequest>,
+) -> Result<Json<AuthResponse>> {
+    // Find user by email
+    let user = state.auth_service.find_user_by_email(&payload.email).await?;
+
+    // User must have TOTP enabled
+    if !user.totp_enabled {
+        return Err(crate::error::AppError::BadRequest("TOTP not enabled".to_string()));
+    }
+
+    // Get TOTP secret
+    let totp_secret = user
+        .totp_secret
+        .as_ref()
+        .ok_or(crate::error::AppError::BadRequest("TOTP not configured".to_string()))?;
+
+    // Verify TOTP code
+    state.auth_service.verify_totp(totp_secret, &payload.code)?;
 
     // Generate JWT token
     let token = state.auth_service.generate_jwt(&user)?;
@@ -351,6 +399,9 @@ pub async fn setup_totp(
     // Generate TOTP secret and URI
     let (secret, uri) = state.auth_service.generate_totp_secret(&user.email)?;
 
+    // Store pending secret on server (security: don't trust client)
+    state.auth_service.store_pending_totp_secret(user.id, &secret).await?;
+
     Ok(Json(TotpSetupResponse { secret, uri }))
 }
 
@@ -358,7 +409,7 @@ pub async fn setup_totp(
 /// Enable TOTP for user after verifying code
 pub async fn enable_totp(
     State(state): State<AppState>,
-    Json(payload): Json<VerifyRequest>,
+    Json(payload): Json<TotpVerifyRequest>,
 ) -> Result<Json<AuthResponse>> {
     // Find user by email
     let user = state.auth_service.find_user_by_email(&payload.email).await?;
@@ -368,14 +419,16 @@ pub async fn enable_totp(
         return Err(crate::error::AppError::EmailNotVerified);
     }
 
-    // Generate new TOTP secret
-    let (secret, _) = state.auth_service.generate_totp_secret(&user.email)?;
+    // Get pending secret from database (security: never trust client-provided secrets)
+    let pending_secret = user
+        .totp_pending_secret
+        .ok_or(crate::error::AppError::BadRequest("TOTP setup not initiated".to_string()))?;
 
-    // Verify the TOTP code with the secret
-    state.auth_service.verify_totp(&secret, &payload.code)?;
+    // Verify the TOTP code with the server-stored secret
+    state.auth_service.verify_totp(&pending_secret, &payload.code)?;
 
-    // Enable TOTP for user
-    state.auth_service.enable_totp(user.id, &secret).await?;
+    // Enable TOTP for user and clear pending secret
+    state.auth_service.enable_totp(user.id, &pending_secret).await?;
 
     // Fetch updated user
     let user = state.auth_service.find_user_by_id(user.id).await?;

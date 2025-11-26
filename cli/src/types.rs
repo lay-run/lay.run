@@ -34,6 +34,15 @@ pub struct AuthResponse {
 }
 
 #[derive(Deserialize, Serialize)]
+#[serde(tag = "status")]
+pub enum LoginVerifyResponse {
+    #[serde(rename = "success")]
+    Success { user: UserResponse, token: String },
+    #[serde(rename = "totp_required")]
+    TotpRequired { message: String },
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct UserResponse {
     pub id: String,
     pub email: String,

@@ -2,7 +2,7 @@ version: "0.5"
 
 processes:
   postgres:
-    command: podman run --rm --name lay-postgres-dev -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=devpassword123 -e POSTGRES_DB=backend -p 55432:5432 docker.io/library/postgres:16
+    command: podman run --rm --name lay-postgres-dev -v lay-postgres-data:/var/lib/postgresql/data -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=devpassword123 -e POSTGRES_DB=backend -p 55432:5432 docker.io/library/postgres:16
     availability:
       restart: on_failure
     readiness_probe:

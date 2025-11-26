@@ -25,6 +25,7 @@ pub fn create_routes(
         .route("/auth/verify", post(auth::verify))
         .route("/auth/login", post(auth::login))
         .route("/auth/login/verify", post(auth::verify_login))
+        .route("/auth/login/verify-totp", post(auth::verify_login_totp))
         .route("/auth/resend-code", post(auth::resend_code))
         .route("/auth/totp/setup", post(auth::setup_totp))
         .route("/auth/totp/enable", post(auth::enable_totp))

@@ -339,7 +339,7 @@ impl AuthService {
     /// Enable TOTP for user
     pub async fn enable_totp(&self, user_id: Uuid, secret: &str) -> Result<()> {
         sqlx::query(
-            "UPDATE users SET totp_secret = $1, totp_enabled = true, updated_at = NOW() WHERE id = $2",
+            "UPDATE users SET totp_secret = $1, totp_pending_secret = NULL, totp_enabled = true, updated_at = NOW() WHERE id = $2",
         )
         .bind(secret)
         .bind(user_id)
@@ -356,7 +356,7 @@ impl AuthService {
     /// Disable TOTP for user
     pub async fn disable_totp(&self, user_id: Uuid) -> Result<()> {
         sqlx::query(
-            "UPDATE users SET totp_secret = NULL, totp_enabled = false, updated_at = NOW() WHERE id = $2",
+            "UPDATE users SET totp_secret = NULL, totp_enabled = false, updated_at = NOW() WHERE id = $1",
         )
         .bind(user_id)
         .execute(&self.pool)
@@ -365,6 +365,21 @@ impl AuthService {
             tracing::error!("Failed to disable TOTP: {:?}", e);
             AppError::DatabaseError
         })?;
+
+        Ok(())
+    }
+
+    /// Store pending TOTP secret for user during setup
+    pub async fn store_pending_totp_secret(&self, user_id: Uuid, secret: &str) -> Result<()> {
+        sqlx::query("UPDATE users SET totp_pending_secret = $1, updated_at = NOW() WHERE id = $2")
+            .bind(secret)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to store pending TOTP secret: {:?}", e);
+                AppError::DatabaseError
+            })?;
 
         Ok(())
     }
@@ -434,6 +449,7 @@ mod tests {
             is_verified: true,
             totp_enabled: false,
             totp_secret: None,
+            totp_pending_secret: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
@@ -467,6 +483,7 @@ mod tests {
             is_verified: true,
             totp_enabled: false,
             totp_secret: None,
+            totp_pending_secret: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };

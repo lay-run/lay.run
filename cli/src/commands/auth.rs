@@ -6,8 +6,8 @@ use crate::config::should_show_totp_reminder;
 use crate::display::Display;
 use crate::error::{CliError, Result};
 use crate::types::{
-    AuthResponse, CodeSentResponse, LoginRequest, RegisterRequest, ResendCodeRequest,
-    TotpSetupResponse, TotpVerifyRequest, VerifyLoginRequest, VerifyRequest,
+    AuthResponse, CodeSentResponse, LoginRequest, LoginVerifyResponse, RegisterRequest,
+    ResendCodeRequest, TotpSetupResponse, TotpVerifyRequest, VerifyLoginRequest, VerifyRequest,
 };
 use crate::{input, session, token};
 
@@ -120,29 +120,100 @@ async fn verify_login(
     code: String,
     output: OutputFormat,
 ) -> Result<()> {
-    let result: AuthResponse = client
+    let result: LoginVerifyResponse = client
         .post("/api/auth/login/verify", &VerifyLoginRequest { email: email.clone(), code })
         .await?;
 
-    token::save(&result.token)?;
-    session::save_email(&email)?;
+    match result {
+        LoginVerifyResponse::Success { user, token } => {
+            // Save token and email
+            token::save(&token)?;
+            session::save_email(&email)?;
 
-    match output {
-        OutputFormat::Json => println!("{}", serde_json::to_string(&result)?),
-        OutputFormat::JsonPretty => println!("{}", serde_json::to_string_pretty(&result)?),
-        OutputFormat::Text => {
-            println!("{}", Display::success("logged in"));
+            match output {
+                OutputFormat::Json => {
+                    println!("{}", serde_json::to_string(&AuthResponse { user, token })?);
+                }
+                OutputFormat::JsonPretty => {
+                    println!("{}", serde_json::to_string_pretty(&AuthResponse { user, token })?);
+                }
+                OutputFormat::Text => {
+                    println!("{}", Display::success("logged in"));
 
-            // Show TOTP reminder if not enabled
-            if !result.user.totp_enabled && should_show_totp_reminder() {
-                println!();
-                println!(
-                    "{}",
-                    Display::info("enhance your account security with two-factor authentication")
-                );
-                println!("  {} {}", "→".cyan().bold(), "lay totp enable your@email.com".white());
-                println!();
-                println!("  disable this reminder: export LAY_TOTP_REMINDER=false");
+                    // Show TOTP reminder if not enabled
+                    if !user.totp_enabled && should_show_totp_reminder() {
+                        println!();
+                        println!(
+                            "{}",
+                            Display::info(
+                                "enhance your account security with two-factor authentication"
+                            )
+                        );
+                        println!("  {} {}", "→".cyan().bold(), "lay totp enable".white());
+                        println!();
+                        println!("  disable this reminder: export LAY_TOTP_REMINDER=false");
+                    }
+                }
+            }
+        }
+        LoginVerifyResponse::TotpRequired { message: _ } => {
+            // TOTP required, prompt for TOTP code with retry loop
+            if matches!(output, OutputFormat::Text) {
+                println!("{}", Display::info("enter totp code from your authenticator app"));
+            }
+
+            // Retry loop for TOTP verification (max 3 attempts)
+            const MAX_TOTP_ATTEMPTS: u32 = 3;
+            let mut auth_result: Option<AuthResponse> = None;
+
+            for attempt in 1..=MAX_TOTP_ATTEMPTS {
+                let totp_code = input::read_masked(&Display::prompt("totp code: "))?;
+
+                // Try to verify TOTP
+                match client
+                    .post(
+                        "/api/auth/login/verify-totp",
+                        &TotpVerifyRequest { email: email.clone(), code: totp_code },
+                    )
+                    .await
+                {
+                    Ok(result) => {
+                        auth_result = Some(result);
+                        break;
+                    }
+                    Err(e) => {
+                        if attempt < MAX_TOTP_ATTEMPTS {
+                            if matches!(output, OutputFormat::Text) {
+                                println!(
+                                    "{}",
+                                    Display::error(&format!(
+                                        "invalid totp code. {} attempt{} remaining",
+                                        MAX_TOTP_ATTEMPTS - attempt,
+                                        if MAX_TOTP_ATTEMPTS - attempt == 1 { "" } else { "s" }
+                                    ))
+                                );
+                            }
+                        } else {
+                            // Last attempt failed, return error
+                            return Err(e);
+                        }
+                    }
+                }
+            }
+
+            // Save token and email
+            let auth_result = auth_result.expect("auth_result should be Some if loop succeeded");
+            token::save(&auth_result.token)?;
+            session::save_email(&email)?;
+
+            match output {
+                OutputFormat::Json => println!("{}", serde_json::to_string(&auth_result)?),
+                OutputFormat::JsonPretty => {
+                    println!("{}", serde_json::to_string_pretty(&auth_result)?)
+                }
+                OutputFormat::Text => {
+                    println!("{}", Display::success("logged in"));
+                }
             }
         }
     }
@@ -151,6 +222,21 @@ async fn verify_login(
 }
 
 pub fn logout(output: OutputFormat) -> Result<()> {
+    // Check if user is logged in
+    if !token::exists() {
+        match output {
+            OutputFormat::Json => println!("{{\"message\": \"not logged in\"}}"),
+            OutputFormat::JsonPretty => {
+                println!("{}", serde_json::json!({"message": "not logged in"}))
+            }
+            OutputFormat::Text => {
+                println!("{}", Display::info("not logged in"));
+            }
+        }
+        return Ok(());
+    }
+
+    // Clear token
     token::clear()?;
 
     match output {
@@ -199,13 +285,43 @@ pub async fn enable_totp(client: &ApiClient, output: OutputFormat) -> Result<()>
         }
     }
 
-    // Prompt for TOTP code to verify
-    let code = input::read_masked(&Display::prompt("enter code: "))?;
+    // Prompt for TOTP code to verify with retry loop
+    const MAX_TOTP_ATTEMPTS: u32 = 3;
+    let mut result: Option<AuthResponse> = None;
 
-    // Enable TOTP
-    let result: AuthResponse =
-        client.post("/api/auth/totp/enable", &TotpVerifyRequest { email, code }).await?;
+    for attempt in 1..=MAX_TOTP_ATTEMPTS {
+        let code = input::read_masked(&Display::prompt("enter code: "))?;
 
+        // Try to enable TOTP (server verifies against stored secret for security)
+        match client
+            .post("/api/auth/totp/enable", &TotpVerifyRequest { email: email.clone(), code })
+            .await
+        {
+            Ok(auth_result) => {
+                result = Some(auth_result);
+                break;
+            }
+            Err(e) => {
+                if attempt < MAX_TOTP_ATTEMPTS {
+                    if matches!(output, OutputFormat::Text) {
+                        println!(
+                            "{}",
+                            Display::error(&format!(
+                                "invalid totp code. {} attempt{} remaining",
+                                MAX_TOTP_ATTEMPTS - attempt,
+                                if MAX_TOTP_ATTEMPTS - attempt == 1 { "" } else { "s" }
+                            ))
+                        );
+                    }
+                } else {
+                    // Last attempt failed, return error
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    let result = result.expect("result should be Some if loop succeeded");
     token::save(&result.token)?;
 
     match output {

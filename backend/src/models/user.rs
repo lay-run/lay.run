@@ -11,6 +11,8 @@ pub struct User {
     pub is_verified: bool,
     #[serde(skip_serializing)]
     pub totp_secret: Option<String>,
+    #[serde(skip_serializing)]
+    pub totp_pending_secret: Option<String>,
     pub totp_enabled: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
